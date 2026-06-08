@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>美麗&美玉黑香芒果 | 產地直採的新鮮美味</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Noto Sans TC"', 'sans-serif'],
+                    },
+                    colors: {
+                        mango: {
+                            light: '#FFFBEB',
+                            yellow: '#F59E0B',
+                            orange: '#D97706',
+                            green: '#10B981',
+                            darkgreen: '#047857',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #10B981;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #047857;
+        }
+        .glass-nav {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased font-sans flex flex-col min-h-screen">
+
+    <header class="fixed w-full top-0 z-50 glass-nav transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logo -->
+                <div class="flex-shrink-0 flex items-center cursor-pointer" onclick="window.scrollTo(0,0)">
+                    <span class="text-3xl text-mango-darkgreen mr-2"><i class="fa-solid fa-leaf"></i></span>
+                    <span class="font-black text-2xl tracking-tight text-gray-900">美麗&美玉<span class="text-mango-darkgreen">黑香芒果</span></span>
+                </div>
+                
+                <!-- Desktop Menu -->
+                <nav class="hidden md:flex space-x-8 items-center">
+                    <a href="#home" class="text-gray-600 hover:text-mango-darkgreen font-medium transition">首頁</a>
+                    <a href="#about" class="text-gray-600 hover:text-mango-darkgreen font-medium transition">關於黑香</a>
+                    <a href="#shop" class="text-gray-600 hover:text-mango-darkgreen font-medium transition">線上訂購</a>
+                    <a href="#guide" class="text-gray-600 hover:text-mango-darkgreen font-medium transition">保存與品嚐</a>
+                </nav>
+
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" class="text-gray-700 hover:text-mango-darkgreen focus:outline-none">
+                        <i class="fa-solid fa-bars text-2xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu Panel -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100 absolute w-full shadow-lg">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#home" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-mango-darkgreen hover:bg-gray-50">首頁</a>
+                <a href="#about" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-mango-darkgreen hover:bg-gray-50">關於黑香</a>
+                <a href="#shop" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-mango-darkgreen hover:bg-gray-50">線上訂購</a>
+                <a href="#guide" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-mango-darkgreen hover:bg-gray-50">保存與品嚐</a>
+            </div>
+        </div>
+    </header>
+
+    <section id="home" class="pt-28 pb-12 bg-mango-light">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col items-center">
+                <!-- 第一張照片：直接作為靜態圖片展示，無任何變暗或背景特效 -->
+                <div class="w-full max-w-4xl mb-10">
+                    <img src="1.jpg" alt="美麗&美玉黑香芒果果園" class="w-full h-auto rounded-2xl shadow-md border-4 border-white block">
+                </div>
+                
+                <div class="text-center max-w-4xl mx-auto">
+                    <span class="inline-block py-1 px-3 rounded-full bg-mango-green text-white text-sm font-bold tracking-wider mb-4 shadow-sm">
+                        2026 夏日限定・產地直送
+                    </span>
+                    <h1 class="text-4xl md:text-6xl font-black text-gray-900 mb-6 leading-tight">
+                        綠色奇蹟！<br>
+                        <span class="text-mango-darkgreen">藏不住的濃郁龍眼香</span>
+                    </h1>
+                    <p class="text-lg md:text-2xl text-gray-700 mb-8 font-medium">
+                        產地新鮮直採，特選黑香芒果，每一口都是夏日的甜蜜爆擊。
+                    </p>
+                    <a href="#shop" class="inline-block bg-mango-yellow hover:bg-mango-orange text-white text-xl font-bold py-4 px-10 rounded-full shadow-lg transition transform hover:-translate-y-1 hover:scale-105">
+                        立即搶購 ｜ 產地價 $60/斤 <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">為什麼選擇我們的黑香芒果？</h2>
+                <div class="h-1 w-24 bg-mango-green mx-auto rounded-full"></div>
+                <p class="mt-4 text-gray-600 max-w-2xl mx-auto">用心栽種，只為呈現最完美的獨特風味。打破您對芒果的傳統想像！</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <!-- Feature 1 -->
+                <div class="bg-mango-light p-8 rounded-2xl shadow-sm hover:shadow-md transition text-center border border-yellow-100">
+                    <div class="w-16 h-16 bg-mango-yellow text-white rounded-full flex items-center justify-center text-2xl mx-auto mb-6 shadow-inner">
+                        <i class="fa-solid fa-wind"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">獨特龍眼香氣</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        帶有獨特的「龍眼」香氣，甜度極高，果肉細緻Q彈，吃過一次就難以忘懷的特殊風味。
+                    </p>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="bg-mango-light p-8 rounded-2xl shadow-sm hover:shadow-md transition text-center border border-yellow-100">
+                    <div class="w-16 h-16 bg-mango-green text-white rounded-full flex items-center justify-center text-2xl mx-auto mb-6 shadow-inner">
+                        <i class="fa-solid fa-leaf"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">綠皮的甜蜜秘密</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        黑香芒果成熟後外皮依然保持翠綠！打破「芒果一定要紅才甜」的迷思，綠色外表下藏著驚人甜度。
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="bg-mango-light p-8 rounded-2xl shadow-sm hover:shadow-md transition text-center border border-yellow-100">
+                    <div class="w-16 h-16 bg-amber-600 text-white rounded-full flex items-center justify-center text-2xl mx-auto mb-6 shadow-inner">
+                        <i class="fa-solid fa-tractor"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-gray-800">小農契作與友善農法</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        堅持在欉紅、草生栽培、安全用藥。燕巢產地直送，讓您與家人吃得安心、健康又滿足。
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 這裡維持不變 (中間裝飾用的情境照) -->
+            <div class="mt-16 rounded-3xl overflow-hidden shadow-xl max-h-[400px] relative">
+                 <img src="https://images.unsplash.com/photo-1591073113125-e46713c829ed?q=80&w=1200&auto=format&fit=crop" alt="果園翠綠芒果" class="w-full object-cover transform hover:scale-105 transition duration-700">
+                 <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end">
+                     <div class="p-8 text-white">
+                         <h3 class="text-2xl font-bold mb-2">來自高雄燕巢的驕傲</h3>
+                         <p>充足的南台灣陽光與肥沃土壤，孕育出最頂級的黑香果實。</p>
+                     </div>
+                 </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="shop" class="py-20 bg-gray-50">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">線上訂購</h2>
+            <div class="h-1 w-24 bg-mango-yellow mx-auto rounded-full"></div>
+            <p class="mt-4 text-gray-600">產地現採，新鮮直送，為您保留最完美的風味。</p>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden flex flex-col md:flex-row border border-gray-100">
+            <div class="md:w-1/2 p-6 flex items-center justify-center bg-white">
+                <!-- 第二張照片：一般靜態圖片，乾淨展示 -->
+                <img src="2.jpg" alt="裝箱翠綠黑香芒果" class="w-full h-auto rounded-xl shadow-sm border border-gray-100 block">
+            </div>
+            
+            <div class="md:w-1/2 p-8 lg:p-12 flex flex-col justify-center">
+                <div class="mb-2 text-mango-darkgreen font-bold text-sm tracking-widest">SEASONAL EXCLUSIVE</div>
+                    <h3 class="text-3xl font-black text-gray-900 mb-2">特級黑香芒果 <span class="text-lg font-normal text-gray-500">(新鮮現採)</span></h3>
+                    <p class="text-gray-500 mb-6">產地直銷單價：每斤 60 元</p>
+                    
+                    <!-- 單一規格展示 -->
+                    <div class="bg-emerald-50 border-2 border-mango-green rounded-xl p-6 mb-6">
+                        <h4 class="font-bold text-gray-800 text-xl mb-2">📦 產地直送箱 (10斤裝)</h4>
+                        <p class="text-gray-600 mb-4 text-sm">約 10-14 顆。為確保水果運送品質與新鮮度，最低出貨量為 10 斤箱裝出貨。</p>
+                        
+                        <div class="space-y-2 text-gray-700 bg-white p-4 rounded-lg border border-emerald-100">
+                            <div class="flex justify-between border-b border-gray-100 pb-2">
+                                <span>商品小計 (10斤)</span>
+                                <span class="font-bold">$600</span>
+                            </div>
+                            <div class="flex justify-between border-b border-gray-100 pb-2">
+                                <span>單箱運費</span>
+                                <span class="font-bold">$120</span>
+                            </div>
+                            <div class="flex justify-between pt-2 items-end">
+                                <span class="font-bold text-gray-900">單箱總計應付金額</span>
+                                <span class="font-black text-mango-orange text-2xl">$720</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 超過10斤提醒 -->
+                    <div class="bg-amber-50 p-4 rounded-lg mb-6 border border-amber-200">
+                        <p class="text-amber-800 text-sm font-bold flex items-start">
+                            <i class="fa-solid fa-circle-exclamation mt-1 mr-2 text-amber-600"></i>
+                            <span>超過 10 斤怎麼買？<br><span class="font-normal text-amber-700 mt-1 block">若需訂購超過 10 斤或大宗採購，請勿直接匯款，請務必先來電 <a href="tel:0988763096" class="underline font-bold text-amber-900 hover:text-amber-600">0988-763-096</a> 聯繫，我們將另行為您確認運費與細節。</span></span>
+                        </p>
+                    </div>
+
+                    <!-- 購買按鈕 -->
+                    <button onclick="showPaymentModal()" class="mt-auto w-full bg-mango-darkgreen hover:bg-green-800 text-white h-14 rounded-xl font-bold text-lg shadow-lg hover:shadow-xl transition flex items-center justify-center">
+                        查看匯款資訊並訂購 <i class="fa-solid fa-file-invoice-dollar ml-2"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="guide" class="py-20 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-amber-50 rounded-3xl p-8 md:p-12 border border-amber-200 shadow-sm relative overflow-hidden">
+                <!-- 背景裝飾 -->
+                <i class="fa-solid fa-triangle-exclamation absolute -top-10 -right-10 text-9xl text-amber-100 opacity-50"></i>
+                
+                <div class="relative z-10">
+                    <h2 class="text-3xl font-bold text-amber-900 mb-6 flex items-center">
+                        <span class="bg-red-500 text-white w-10 h-10 flex items-center justify-center rounded-full mr-3 shadow-md"><i class="fa-solid fa-exclamation"></i></span>
+                        如何判斷黑香芒果熟了？
+                    </h2>
+                    
+                    <div class="bg-white rounded-2xl p-6 border-l-8 border-red-500 mb-8 shadow-sm">
+                        <h3 class="text-xl font-bold text-red-600 mb-2">🛑 絕對不能等外皮變紅！</h3>
+                        <p class="text-gray-700 text-lg">
+                            黑香芒果成熟時<span class="font-bold underline decoration-red-500 decoration-2">外皮不會變紅</span>！請勿放進冰箱後才等它變色！<br>
+                            請務必確認熟透後再放入冰箱，若未熟就冷藏，芒果會「凍傷」而永遠不會熟成喔！
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Step 1 -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-col items-center text-center">
+                            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-2xl mb-4 font-black">1</div>
+                            <h4 class="text-lg font-bold mb-2">摸一摸</h4>
+                            <p class="text-gray-600">輕壓果蒂周圍，若感覺微軟且有彈性，代表已經熟成，可以享用囉。</p>
+                        </div>
+                        <!-- Step 2 -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-col items-center text-center">
+                            <div class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-2xl mb-4 font-black">2</div>
+                            <h4 class="text-lg font-bold mb-2">聞一聞</h4>
+                            <p class="text-gray-600">靠近果蒂處，會散發出濃郁的芒果與龍眼混合香氣，越熟香氣越明顯。</p>
+                        </div>
+                        <!-- Step 3 -->
+                        <div class="bg-white p-6 rounded-2xl shadow-sm flex flex-col items-center text-center">
+                            <div class="w-16 h-16 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center text-2xl mb-4 font-black">3</div>
+                            <h4 class="text-lg font-bold mb-2 text-blue-600">冰一冰 (確認熟成後)</h4>
+                            <p class="text-gray-600">確認芒果完全熟透變軟後，放入冰箱冷藏1-2小時，冰涼後享用風味最佳！</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer id="contact" class="bg-gray-900 text-gray-300 pt-16 pb-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
+                
+                <!-- 品牌資訊 -->
+                <div>
+                    <h3 class="text-2xl font-black text-white mb-6 flex items-center">
+                        <span class="text-mango-green mr-2"><i class="fa-solid fa-leaf"></i></span>美麗&美玉黑香芒果
+                    </h3>
+                    <p class="mb-4 text-gray-400">產地新鮮直採，用心為您培育每一顆頂級黑香芒果，帶來最純粹的龍眼甜蜜。</p>
+                    <div class="flex items-center space-x-3 text-white">
+                        <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-mango-green">
+                            <i class="fa-solid fa-phone"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">客服專線</p>
+                            <a href="tel:0988763096" class="font-bold text-lg hover:text-mango-yellow transition">0988-763-096</a>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3 text-white mt-4">
+                        <div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-mango-green">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">果園地址</p>
+                            <p class="font-bold text-lg">高雄市燕巢鄉</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 運費與配送 -->
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-6">運費與配送資訊</h4>
+                    <ul class="space-y-4 text-gray-400">
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-truck text-mango-green mt-1 mr-3"></i>
+                            <div>
+                                <strong class="text-gray-200">配送方式：</strong><br>黑貓宅急便 / 常溫配送
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-hand-holding-dollar text-mango-green mt-1 mr-3"></i>
+                            <div>
+                                <strong class="text-gray-200">運費計算：</strong><br>每箱 (10斤) 運費 $120。<br>
+                                <span class="text-mango-yellow font-bold">訂購超過 10 斤請先電話聯繫。</span>
+                            </div>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-box-open text-mango-green mt-1 mr-3"></i>
+                            <div>
+                                <strong class="text-gray-200">出貨時間：</strong><br>水果為大自然產物，下單後視熟成狀況約 3-5 個工作天內依序出貨。
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- 付款資訊 -->
+                <div>
+                    <h4 class="text-lg font-bold text-white mb-6">付款方式</h4>
+                    <div class="bg-gray-800 p-5 rounded-xl border border-gray-700">
+                        <div class="flex items-center mb-3">
+                            <i class="fa-solid fa-money-bill-transfer text-mango-green text-xl mr-3"></i>
+                            <span class="font-bold text-white">銀行轉帳 (唯一付款方式)</span>
+                        </div>
+                        <p class="text-sm text-gray-400 mb-3">請於確認購買後匯款至以下帳戶：</p>
+                        <div class="bg-gray-900 p-3 rounded text-gray-300 font-mono text-sm mb-3">
+                            銀行代碼：<span class="text-white font-bold">彰化銀行 (009)</span><br>
+                            匯款帳號：<span class="text-white font-bold">95475104227700</span>
+                        </div>
+                        <p class="text-sm text-mango-yellow font-bold mt-2">
+                            <i class="fa-solid fa-bell mr-1"></i> 匯款後請務必來電 0988763096 通知，我們將盡快安排出貨！
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+            
+            <div class="border-t border-gray-800 pt-8 mt-8 text-center text-sm text-gray-500">
+                <p>版權宣告： &copy; 2026 [美麗&美玉黑香芒果]. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 結帳完成/匯款資訊 彈窗 -->
+    <div id="checkout-modal" class="fixed inset-0 z-[70] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closePaymentModal()"></div>
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full relative z-10 overflow-hidden transform scale-95 opacity-0 transition-all duration-300" id="checkout-modal-content">
+            <div class="bg-mango-green p-6 text-center text-white">
+                <div class="w-16 h-16 bg-white text-mango-green rounded-full flex items-center justify-center text-3xl mx-auto mb-3 shadow-lg">
+                    <i class="fa-solid fa-basket-shopping"></i>
+                </div>
+                <h3 class="text-2xl font-bold">訂購與匯款資訊</h3>
+                <p class="opacity-90 mt-1">請依下方資訊完成匯款後，來電通知出貨。</p>
+            </div>
+            <div class="p-6">
+                <div class="bg-amber-50 border border-amber-200 p-4 rounded-xl mb-6">
+                    <h4 class="font-bold text-amber-900 mb-2 border-b border-amber-200 pb-2"><i class="fa-solid fa-building-columns mr-2"></i> 專屬匯款資訊</h4>
+                    <div class="space-y-2 mt-3 font-medium text-gray-800">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">銀行代碼</span>
+                            <span>彰化銀行 (009)</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-500">匯款帳號</span>
+                            <span class="font-mono text-lg font-bold text-mango-darkgreen flex items-center">
+                                95475104227700
+                                <button onclick="copyAccount()" class="ml-2 text-gray-400 hover:text-mango-darkgreen" title="複製帳號"><i class="fa-regular fa-copy"></i></button>
+                            </span>
+                        </div>
+                        <div class="flex justify-between border-t border-amber-100 pt-2 mt-2">
+                            <span class="text-gray-500">單箱應付總額</span>
+                            <span class="font-black text-xl text-red-600">$720 <span class="text-xs text-gray-500 font-normal">/ 10斤含運</span></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <p class="text-sm text-gray-800 font-bold mb-2">💡 匯款完成後，請務必來電通知：</p>
+                    <a href="tel:0988763096" class="text-2xl font-black text-blue-600 hover:underline inline-block mb-1">
+                        <i class="fa-solid fa-phone-volume mr-1"></i> 0988-763-096
+                    </a>
+                    <p class="text-xs text-gray-500 mt-2 text-left">電話中請告知您的：<br>1. 姓名與聯絡電話<br>2. 收件地址<br>3. 匯款帳號後五碼</p>
+                </div>
+                
+                <button onclick="closePaymentModal()" class="mt-6 w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-xl font-bold transition">
+                    我已了解，關閉視窗
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 提示小吐司 (Toast) -->
+    <div id="toast" class="fixed bottom-5 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-xl z-[80] transition-all duration-300 translate-y-20 opacity-0 flex items-center pointer-events-none">
+        <i class="fa-solid fa-circle-info mr-2 text-mango-yellow"></i>
+        <span id="toast-msg">提示訊息</span>
+    </div>
+
+    <script>
+        // --- 手機版選單邏輯 ---
+        const btn = document.getElementById('mobile-menu-btn');
+        const menu = document.getElementById('mobile-menu');
+
+        btn.addEventListener('click', () => {
+            menu.classList.toggle('hidden');
+        });
+
+        // 點擊選單後自動收起
+        document.querySelectorAll('#mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                menu.classList.add('hidden');
+            });
+        });
+
+        // --- 訂購與匯款彈窗邏輯 ---
+        function showPaymentModal() {
+            const modal = document.getElementById('checkout-modal');
+            const modalContent = document.getElementById('checkout-modal-content');
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            // 延遲以觸發 CSS 動畫
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95', 'opacity-0');
+                modalContent.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        function closePaymentModal() {
+            const modal = document.getElementById('checkout-modal');
+            const modalContent = document.getElementById('checkout-modal-content');
+            
+            modalContent.classList.remove('scale-100', 'opacity-100');
+            modalContent.classList.add('scale-95', 'opacity-0');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 300);
+        }
+
+        // --- UI 工具 ---
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').textContent = message;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        function copyAccount() {
+            const accountNo = "95475104227700";
+            
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(accountNo).then(() => {
+                    showToast("帳號已複製！");
+                });
+            } else {
+                let textArea = document.createElement("textarea");
+                textArea.value = accountNo;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-999999px";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                    showToast("帳號已複製！");
+                } catch (err) {
+                    showToast("複製失敗，請手動複製");
+                }
+                document.body.removeChild(textArea);
+            }
+        }
+    </script>
+</body>
+</html>
