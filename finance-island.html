@@ -3849,9 +3849,22 @@ function startWorld() {
 
   let resizeFrame=0;
 
+  let lastLayoutWidth=window.innerWidth;
+
   window.addEventListener("resize",()=>{
     cancelAnimationFrame(resizeFrame);
     resizeFrame=requestAnimationFrame(()=>{
+      const ae=document.activeElement;
+      const editing=ae&&(ae.isContentEditable||
+        /^(INPUT|TEXTAREA)$/.test(ae.tagName));
+      const widthChanged=
+        Math.abs(window.innerWidth-lastLayoutWidth)>40;
+      // 手機鍵盤彈出或網址列收合只改高度：只調整畫布，不重排、不關面板
+      if(editing||!widthChanged) {
+        resizeRenderer();
+        return;
+      }
+      lastLayoutWidth=window.innerWidth;
       refreshLayout(false);
     });
   });
