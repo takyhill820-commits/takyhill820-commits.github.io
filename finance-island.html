@@ -3750,7 +3750,7 @@ function startWorld() {
     );
 
     if(id) {
-      select(id);
+      avatarWalkTo(id);
     } else if(selectedIslandId!==null) {
       closeSelection();
     }
@@ -3933,6 +3933,371 @@ function startWorld() {
   }
 
   // ====================================================
+  // 主人 Q 版小人（程序化建模、可行走）
+  // ====================================================
+
+  const avatar=(()=>{
+    const root=new THREE.Group();
+    root.name="owner-avatar";
+    scene.add(root);
+    const body=new THREE.Group();   // 上下彈跳用
+    root.add(body);
+
+    const M=(c,o={})=>new THREE.MeshStandardMaterial({color:c,roughness:0.7,...o});
+    const skinM=M("#ffd9b8"),hairM=M("#1d1d24",{roughness:0.55}),
+      navyM=M("#1f2f5c"),whiteM=M("#f4f7fb"),blueM=M("#8fc3ee"),
+      beigeM=M("#d9c39a"),shoeM=M("#ffffff",{roughness:0.5}),
+      eyeM=M("#1a1a1f",{roughness:0.3}),blushM=M("#ff9fa0",{roughness:0.9}),
+      soleM=M("#c9cfd8");
+
+    const add=(parent,geo,mat,x=0,y=0,z=0,shadow=true)=>{
+      const m=new THREE.Mesh(geo,mat);
+      m.position.set(x,y,z);
+      m.castShadow=shadow;
+      parent.add(m);
+      return m;
+    };
+
+    // 腿（臀部為樞軸）
+    const legGeo=new THREE.CapsuleGeometry(0.075,0.14,3,8);
+    const shoeGeo=new THREE.SphereGeometry(0.1,10,6);
+    const makeLeg=x=>{
+      const pivot=new THREE.Group();
+      pivot.position.set(x,0.34,0);
+      body.add(pivot);
+      add(pivot,legGeo,beigeM,0,-0.13,0);
+      const shoe=add(pivot,shoeGeo,shoeM,0,-0.27,0.03);
+      shoe.scale.set(0.95,0.6,1.3);
+      const sole=add(pivot,shoeGeo,soleM,0,-0.3,0.03,false);
+      sole.scale.set(0.97,0.22,1.32);
+      return pivot;
+    };
+    const legL=makeLeg(-0.085),legR=makeLeg(0.085);
+
+    // 軀幹：海軍藍 polo
+    const torso=add(body,new THREE.CapsuleGeometry(0.17,0.12,4,12),navyM,0,0.5,0);
+    torso.scale.set(1.05,1,0.82);
+    // 胸前條紋
+    const stripeGeo=new THREE.TorusGeometry(0.172,0.013,4,20);
+    [[0.56,whiteM],[0.525,blueM],[0.49,whiteM]].forEach(([y,m])=>{
+      const s=add(body,stripeGeo,m,0,y,0,false);
+      s.rotation.x=Math.PI/2;
+      s.scale.set(1.06,0.84,1);
+    });
+    // 領口（白色小翻領）
+    const collar=add(body,new THREE.TorusGeometry(0.085,0.022,5,14),whiteM,0,0.655,0.01,false);
+    collar.rotation.x=Math.PI/2;
+    // 腰帶線（褲頭）
+    const belt=add(body,new THREE.CylinderGeometry(0.165,0.16,0.07,12),beigeM,0,0.36,0);
+    belt.scale.z=0.85;
+
+    // 手臂（肩膀為樞軸），袖口有條紋
+    const armGeo=new THREE.CapsuleGeometry(0.05,0.14,3,8);
+    const sleeveGeo=new THREE.SphereGeometry(0.075,10,7);
+    const handGeo=new THREE.SphereGeometry(0.052,8,6);
+    const cuffGeo=new THREE.TorusGeometry(0.06,0.012,4,12);
+    const makeArm=side=>{
+      const pivot=new THREE.Group();
+      pivot.position.set(side*0.215,0.6,0);
+      body.add(pivot);
+      const sleeve=add(pivot,sleeveGeo,navyM,0,-0.03,0);
+      sleeve.scale.set(1,1.15,1);
+      const c1=add(pivot,cuffGeo,whiteM,0,-0.075,0,false);c1.rotation.x=Math.PI/2;
+      const c2=add(pivot,cuffGeo,blueM,0,-0.098,0,false);c2.rotation.x=Math.PI/2;c2.scale.setScalar(0.93);
+      add(pivot,armGeo,skinM,0,-0.15,0);
+      add(pivot,handGeo,skinM,0,-0.25,0);
+      pivot.rotation.z=side*0.32;
+      return pivot;
+    };
+    const armL=makeArm(-1),armR=makeArm(1);
+
+    // 大頭
+    const head=new THREE.Group();
+    head.position.set(0,0.92,0);
+    body.add(head);
+    const skull=add(head,new THREE.SphereGeometry(0.27,18,14),skinM);
+    skull.scale.set(1,0.94,0.95);
+    // 耳朵
+    const earGeo=new THREE.SphereGeometry(0.05,8,6);
+    add(head,earGeo,skinM,-0.265,-0.02,0).scale.set(0.6,1,0.8);
+    add(head,earGeo,skinM,0.265,-0.02,0).scale.set(0.6,1,0.8);
+    // 眼睛＋高光
+    const eyeGeo=new THREE.SphereGeometry(0.038,10,8);
+    const glintGeo=new THREE.SphereGeometry(0.012,6,4);
+    for(const x of [-0.095,0.095]) {
+      const e=add(head,eyeGeo,eyeM,x,-0.01,0.235,false);
+      e.scale.set(0.85,1.15,0.5);
+      add(head,glintGeo,whiteM,x+0.012,0.012,0.255,false);
+      const b=add(head,new THREE.CircleGeometry(0.04,10),blushM,x*1.55,-0.085,0.2,false);
+      b.lookAt(x*6,-0.4,1.5);
+      b.material.transparent=true;b.material.opacity=0.55;
+    }
+    // 小微笑
+    const smile=add(head,new THREE.TorusGeometry(0.045,0.011,4,12,Math.PI),eyeM,0,-0.075,0.24,false);
+    smile.rotation.z=Math.PI;
+    // 頭髮：帽狀底 + 尖刺
+    const cap=add(head,new THREE.SphereGeometry(0.285,16,10,0,TAU,0,Math.PI*0.5),hairM);
+    cap.position.y=0.03;cap.rotation.x=-0.28;cap.scale.set(1.02,0.9,1.02);
+    const backHair=add(head,new THREE.SphereGeometry(0.27,14,10,0,TAU,0,Math.PI*0.62),hairM,0,0.0,-0.035);
+    backHair.rotation.x=-1.1;
+    const spikeGeo=new THREE.ConeGeometry(0.075,0.17,5);
+    const spikes=[
+      [0,0.29,0.05,-0.25,0],[0.11,0.27,0.08,-0.35,-0.45],[-0.11,0.27,0.08,-0.35,0.45],
+      [0.18,0.22,-0.02,0,-0.8],[-0.18,0.22,-0.02,0,0.8],[0.06,0.28,-0.1,0.4,-0.2],
+      [-0.07,0.28,-0.1,0.4,0.25],[0,0.22,-0.2,0.9,0],[0.05,0.22,0.19,-0.9,-0.1],
+      [-0.07,0.21,0.2,-0.95,0.15],[0.15,0.17,0.16,-0.8,-0.6],[-0.15,0.17,0.16,-0.8,0.6]
+    ];
+    for(const [x,y,z,rx,rz] of spikes) {
+      const s=add(head,spikeGeo,hairM,x,y,z);
+      s.rotation.set(rx,0,rz);
+    }
+
+    // 圓形陰影（便宜，避免額外陰影成本）
+    const blob=new THREE.Mesh(
+      new THREE.CircleGeometry(0.24,16),
+      new THREE.MeshBasicMaterial({color:"#0b3a55",transparent:true,opacity:0.22,depthWrite:false})
+    );
+    blob.rotation.x=-Math.PI/2;
+    scene.add(blob);
+
+    const SCALE=2;
+    root.scale.setScalar(SCALE);
+
+    return {root,body,head,legL,legR,armL,armR,blob};
+  })();
+
+  // ---------- 地面判定 ----------
+  const tileWorld=new THREE.Vector3();
+  function surfaceAt(x,z) {
+    // 傳回 {island, y}；水面上傳回 null
+    let best=null,bestD=Infinity;
+    for(const island of islands) {
+      const p=island.root.position;
+      const dx=x-p.x,dz=z-p.z;
+      if(dx*dx+dz*dz>16) continue;
+      for(const [q,r] of island.tiles) {
+        const [tx,tz]=axialToXZ(q,r);
+        const d=Math.hypot(dx-tx,dz-tz);
+        if(d<bestD) {bestD=d;best=island;}
+      }
+    }
+    if(best && bestD<HEX_RADIUS*0.92) {
+      return {island:best,y:best.root.position.y+TOP};
+    }
+    return null;
+  }
+
+  // 每座島的站立點（避開中央造型，站在朝鏡頭的一側）
+  // 站立點：島中心往鏡頭方向偏移（避開中央造型），並確保落在地塊上
+  const standTmp=new THREE.Vector3();
+  function standPoint(island) {
+    const p=island.root.position;
+    standTmp.set(camera.position.x-p.x,0,camera.position.z-p.z);
+    if(standTmp.lengthSq()<1e-4) standTmp.set(0,0,1);
+    standTmp.normalize();
+    const decor=island.root.children.filter(c=>!c.userData.isTile);
+    let best=null,bestScore=-Infinity;
+    for(const ang of [0.35,-0.35,0.8,-0.8,1.25,-1.25,0,1.7,-1.7]) {
+      const dx=standTmp.x*Math.cos(ang)+standTmp.z*Math.sin(ang);
+      const dz=-standTmp.x*Math.sin(ang)+standTmp.z*Math.cos(ang);
+      for(const r of [1.25,1.0,1.5,0.75]) {
+        const x=p.x+dx*r,z=p.z+dz*r;
+        const sf=surfaceAt(x,z);
+        if(!sf||sf.island!==island) continue;
+        let clear=9,blocked=0;
+        for(const c of decor) {
+          const vx=p.x+c.position.x-x,vz=p.z+c.position.z-z;
+          clear=Math.min(clear,Math.hypot(vx,vz));
+          const along=vx*standTmp.x+vz*standTmp.z;
+          const side=Math.abs(vx*standTmp.z-vz*standTmp.x);
+          if(along>0&&along<1.6&&side<0.45) blocked+=1;
+        }
+        const score=Math.min(clear,0.7)*4-blocked*2-Math.abs(ang)*0.6-Math.abs(r-1.2)*0.3;
+        if(score>bestScore){bestScore=score;best=new THREE.Vector3(x,0,z);}
+      }
+    }
+    if(best) return best;
+    return new THREE.Vector3(p.x,0,p.z+0.6);
+  }
+  function faceCamera() {
+    av.targetHeading=Math.atan2(camera.position.x-av.pos.x,camera.position.z-av.pos.z);
+  }
+
+  const av={
+    pos:new THREE.Vector3(),
+    heading:0,
+    targetHeading:0,
+    homeIsland:null,      // 靜止時跟著島嶼移動
+    homeOffset:new THREE.Vector3(),
+    path:null,            // {from,to,len,t,targetId}
+    walkPhase:0,
+    moving:false,
+    keyIsland:null,
+    hop:0
+  };
+
+  const startIsland=islandById.get("income")||islands[0];
+  let avatarPlaced=false;
+  function placeAvatarAtStart() {
+    if(!startIsland) return;
+    avatarPlaced=true;
+    av.pos.copy(standPoint(startIsland));
+    faceCamera();
+    av.heading=av.targetHeading;
+    av.homeIsland=startIsland;
+    av.homeOffset.subVectors(av.pos,startIsland.root.position).setY(0);
+  }
+
+  function avatarWalkTo(id) {
+    const island=islandById.get(id);
+    if(!island) return;
+    const to=standPoint(island);
+    const len=Math.hypot(to.x-av.pos.x,to.z-av.pos.z);
+    if(reducedMotion||len<0.15) {
+      av.pos.copy(to);
+      av.homeIsland=island;
+      av.homeOffset.subVectors(to,island.root.position).setY(0);
+      av.path=null;
+      select(id);
+      return;
+    }
+    av.path={from:av.pos.clone(),to,len,t:0,start:performance.now(),targetId:id};
+    av.homeIsland=null;
+  }
+
+  const keysDown=new Set();
+  const MOVE_KEYS={
+    arrowup:[0,1],w:[0,1],arrowdown:[0,-1],s:[0,-1],
+    arrowleft:[-1,0],a:[-1,0],arrowright:[1,0],d:[1,0]
+  };
+  function isEditableFocus() {
+    const ae=document.activeElement;
+    return !!ae&&(ae.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName));
+  }
+  window.addEventListener("keydown",event=>{
+    if(isEditableFocus()||event.metaKey||event.ctrlKey||event.altKey) return;
+    const k=event.key.toLowerCase();
+    if(MOVE_KEYS[k]) {
+      keysDown.add(k);
+      av.path=null;
+      event.preventDefault();
+      return;
+    }
+    if((k==="enter"||k===" ")&&av.keyIsland) {
+      const ae=document.activeElement;
+      if(ae&&ae!==document.body&&ae!==canvas&&/^(BUTTON|A)$/.test(ae.tagName)) return;
+      event.preventDefault();
+      select(av.keyIsland.data.id);
+    }
+  });
+  window.addEventListener("keyup",event=>keysDown.delete(event.key.toLowerCase()));
+  window.addEventListener("blur",()=>keysDown.clear());
+
+  window.__avpos=()=>[+av.pos.x.toFixed(2),+av.pos.z.toFixed(2),av.keyIsland?av.keyIsland.data.id:null];
+  window.__avscreen=()=>{const v=avatar.root.position.clone();v.y+=0.6;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};
+  window.__islandScreen=id=>{const v=islandById.get(id).root.position.clone();v.y+=TOP;v.project(camera);return [(v.x+1)/2*innerWidth,(1-v.y)/2*innerHeight];};
+  const camFwd=new THREE.Vector3(),camRight=new THREE.Vector3(),moveDir=new THREE.Vector3();
+
+  function updateAvatar(time,delta) {
+    if(!avatarPlaced) placeAvatarAtStart();
+    let speed=0;
+    let groundY=0.3;
+
+    // 鍵盤自由移動
+    if(keysDown.size&&!isEditableFocus()) {
+      let ix=0,iz=0;
+      for(const k of keysDown) {const v=MOVE_KEYS[k];if(v){ix+=v[0];iz+=v[1];}}
+      camera.getWorldDirection(camFwd);camFwd.y=0;camFwd.normalize();
+      camRight.crossVectors(camFwd,camera.up).normalize();
+      moveDir.set(0,0,0).addScaledVector(camFwd,iz).addScaledVector(camRight,ix);
+      if(moveDir.lengthSq()>0) {
+        moveDir.normalize();
+        const step=2.6*delta;
+        const nx=THREE.MathUtils.clamp(av.pos.x+moveDir.x*step,-16,16);
+        const nz=THREE.MathUtils.clamp(av.pos.z+moveDir.z*step,-11,11);
+        av.pos.x=nx;av.pos.z=nz;
+        av.targetHeading=Math.atan2(moveDir.x,moveDir.z);
+        speed=1;
+        av.homeIsland=null;
+      }
+    } else if(av.path) {
+      const p=av.path;
+      const dur=THREE.MathUtils.clamp(p.len/4.5,0.6,3.2);
+      p.t=Math.min(1,(performance.now()-p.start)/1000/dur);
+      const e=p.t<0.5?2*p.t*p.t:1-Math.pow(-2*p.t+2,2)/2; // easeInOut
+      // 終點跟著島（版面可能變動）
+      const isl=islandById.get(p.targetId);
+      const to=standPoint(isl);
+      av.pos.lerpVectors(p.from,to,e);
+      av.targetHeading=Math.atan2(to.x-p.from.x,to.z-p.from.z);
+      speed=1;
+      if(p.t>=1) {
+        av.path=null;
+        av.homeIsland=isl;
+        av.homeOffset.subVectors(av.pos,isl.root.position).setY(0);
+        faceCamera();
+        select(p.targetId);
+      }
+    } else if(av.homeIsland) {
+      av.pos.x=av.homeIsland.root.position.x+av.homeOffset.x;
+      av.pos.z=av.homeIsland.root.position.z+av.homeOffset.z;
+      faceCamera();
+    }
+
+    const surf=surfaceAt(av.pos.x,av.pos.z);
+    let hopY=0;
+    if(surf) {
+      groundY=surf.y;
+    } else {
+      // 水面上：小跳步
+      groundY=0.35;
+      av.hop+=delta*6;
+      hopY=reducedMotion?0:Math.abs(Math.sin(av.hop))*0.35;
+    }
+
+    // 鍵盤走上島嶼時高亮
+    const onIsland=surf?surf.island:null;
+    if(keysDown.size||av.keyIsland) {
+      if(onIsland!==av.keyIsland) {
+        if(!onIsland&&av.keyIsland&&hoveredIslandId===av.keyIsland.data.id) hoveredIslandId=null;
+        av.keyIsland=onIsland;
+      }
+      if(av.keyIsland&&selectedIslandId===null) {
+        hoveredIslandId=av.keyIsland.data.id;
+      }
+    }
+
+    // 平滑轉向
+    let dh=av.targetHeading-av.heading;
+    dh=Math.atan2(Math.sin(dh),Math.cos(dh));
+    av.heading+=dh*Math.min(1,delta*10);
+
+    // 走路循環
+    const a=avatar;
+    av.moving=THREE.MathUtils.lerp(av.moving?1:0,speed,1)>0;
+    if(speed>0&&!reducedMotion) av.walkPhase+=delta*11;
+    const sw=speed>0&&!reducedMotion?Math.sin(av.walkPhase):0;
+    const walkAmt=speed>0?1:0;
+    a.legL.rotation.x=sw*0.7*walkAmt;
+    a.legR.rotation.x=-sw*0.7*walkAmt;
+    a.armL.rotation.x=-sw*0.8*walkAmt;
+    a.armR.rotation.x=sw*0.8*walkAmt;
+    let bob=0,breathe=1;
+    if(!reducedMotion) {
+      if(speed>0) bob=Math.abs(Math.cos(av.walkPhase))*0.06;
+      else breathe=1+Math.sin(time*2.2)*0.018;
+    }
+    a.body.position.y=bob;
+    a.body.scale.set(1,breathe,1);
+    a.head.rotation.z=reducedMotion?0:(speed>0?sw*0.06:Math.sin(time*1.1)*0.04);
+
+    a.root.position.set(av.pos.x,THREE.MathUtils.lerp(a.root.position.y||groundY,groundY,Math.min(1,delta*14))+hopY,av.pos.z);
+    a.root.rotation.y=av.heading;
+    a.blob.position.set(av.pos.x,(surf?surf.y:0.32)+0.012,av.pos.z);
+    a.blob.scale.setScalar(1-hopY*0.8);
+  }
+
+  // ====================================================
   // 單一 requestAnimationFrame
   // ====================================================
 
@@ -3948,6 +4313,7 @@ function startWorld() {
 
     if(!reducedMotion) animateSea(time);
 
+    updateAvatar(time,delta);
     animateIslandSelection(time,delta);
 
     for(const ripple of ripples) {
