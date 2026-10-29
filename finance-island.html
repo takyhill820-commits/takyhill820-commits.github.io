@@ -1,0 +1,4028 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#c9ecf4">
+<title>個人理財島</title>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+<style>
+:root {
+  --ink:#4a4766;
+  --muted:#7a7794;
+  --white:rgba(255,255,255,.92);
+  --shadow:0 6px 18px rgba(80,90,140,.16);
+  font-family:"Noto Sans TC","PingFang TC",
+    "Microsoft JhengHei",system-ui,sans-serif;
+}
+
+* { box-sizing:border-box; }
+
+html,body {
+  width:100%;
+  height:100%;
+  margin:0;
+  padding:0;
+  overflow:hidden;
+  overscroll-behavior:none;
+  touch-action:none;
+}
+
+body {
+  position:fixed;
+  inset:0;
+  height:100dvh;
+  color:var(--ink);
+  background:linear-gradient(#e7f8fb,#bfe8f1);
+}
+
+#world {
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  height:100dvh;
+  display:block;
+  touch-action:none;
+  outline:none;
+  z-index:0;
+}
+
+#ui {
+  position:fixed;
+  inset:0;
+  height:100dvh;
+  pointer-events:none;
+  z-index:2;
+  overflow:hidden;
+}
+
+button {
+  font:inherit;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.header-card {
+  position:absolute;
+  top:max(14px,env(safe-area-inset-top));
+  left:16px;
+  padding:10px 16px;
+  border-radius:20px;
+  background:rgba(255,255,255,.92);
+  box-shadow:var(--shadow);
+  pointer-events:auto;
+  z-index:20;
+  max-width:calc(100vw - 32px);
+  transition:opacity .25s;
+}
+
+.header-card h1 {
+  margin:0;
+  font-size:21px;
+  font-weight:900;
+  line-height:1.35;
+}
+
+.header-card .subtitle {
+  margin-top:3px;
+  font-size:12px;
+  color:var(--muted);
+}
+
+.example-badge {
+  display:inline-block;
+  margin-top:7px;
+  padding:3px 10px;
+  background:#ffe9c7;
+  color:#a8581f;
+  border:1.5px dashed #f0b56a;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800;
+}
+
+.toolbar {
+  position:absolute;
+  top:max(14px,env(safe-area-inset-top));
+  right:16px;
+  display:flex;
+  gap:9px;
+  z-index:21;
+  pointer-events:auto;
+  transition:right .45s cubic-bezier(.2,.8,.2,1);
+}
+
+body.sel .toolbar {
+  right:calc(min(380px,92vw) + 16px);
+}
+
+.tool-button {
+  border:2px solid transparent;
+  border-radius:999px;
+  background:rgba(255,255,255,.92);
+  box-shadow:var(--shadow);
+  color:var(--ink);
+  font-size:13px;
+  font-weight:800;
+  padding:10px 13px;
+  white-space:nowrap;
+  transition:background .2s,border-color .2s;
+}
+
+.tool-button.active {
+  background:#ffe3ec;
+  border-color:#ff9db8;
+}
+
+.tool-button:focus-visible,
+.island-label:focus-visible,
+.panel-close:focus-visible,
+.relation-button:focus-visible {
+  outline:3px solid #b9a6f0;
+  outline-offset:2px;
+}
+
+.hint {
+  position:absolute;
+  top:24px;
+  left:50%;
+  transform:translateX(-50%);
+  padding:8px 15px;
+  border-radius:999px;
+  background:rgba(255,255,255,.7);
+  box-shadow:0 3px 12px rgba(80,90,140,.08);
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+  white-space:nowrap;
+  transition:opacity .55s,visibility .55s;
+  z-index:10;
+}
+
+.hint.hidden,
+body.sel .hint {
+  opacity:0;
+  visibility:hidden;
+}
+
+/* 島嶼資訊卡 */
+#labels {
+  position:absolute;
+  inset:0;
+  z-index:5;
+  pointer-events:none;
+}
+
+.island-label {
+  position:absolute;
+  left:0;
+  top:0;
+  width:172px;
+  min-width:172px;
+  padding:8px 10px 9px;
+  border:0;
+  border-radius:16px;
+  background:rgba(255,255,255,.92);
+  box-shadow:
+    0 6px 18px rgba(80,90,140,.18),
+    0 0 0 2px var(--island-color);
+  color:var(--ink);
+  text-align:left;
+  font:inherit;
+  pointer-events:auto;
+  cursor:pointer;
+  user-select:none;
+  touch-action:manipulation;
+  will-change:transform;
+  transition:box-shadow .18s,opacity .25s;
+}
+
+.island-label:hover,
+.island-label.selected {
+  box-shadow:
+    0 9px 24px rgba(80,90,140,.26),
+    0 0 0 3px var(--island-color);
+}
+
+body.sel .island-label:not(.selected) {
+  opacity:.55;
+}
+
+.label-top {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+}
+
+.label-emoji {
+  font-size:20px;
+  flex-shrink:0;
+}
+
+.label-title-group {
+  display:flex;
+  flex-direction:column;
+  flex:1;
+  min-width:0;
+}
+
+.label-name {
+  font-size:14px;
+  font-weight:800;
+  line-height:1.35;
+  white-space:nowrap;
+}
+
+.label-sub {
+  margin-top:1px;
+  color:var(--muted);
+  font-size:10.5px;
+  line-height:1.25;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.label-percent {
+  margin-left:auto;
+  font-size:13px;
+  font-weight:900;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+
+.progress-track {
+  width:100%;
+  height:8px;
+  margin-top:7px;
+  background:rgba(120,110,160,.16);
+  border-radius:999px;
+  overflow:hidden;
+}
+
+.progress-fill {
+  height:100%;
+  background:var(--island-color);
+  border-radius:inherit;
+  filter:saturate(1.25) brightness(.93);
+}
+
+.label-items {
+  margin-top:8px;
+  padding-top:6px;
+  border-top:1px dashed rgba(120,110,160,.18);
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
+
+.label-item {
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:5px;
+  line-height:1.55;
+  min-width:0;
+}
+
+.label-item-name {
+  color:var(--muted);
+  font-size:11px;
+  font-weight:400;
+  flex-shrink:0;
+}
+
+.label-item-value {
+  color:var(--ink);
+  font-size:11px;
+  font-weight:800;
+  text-align:right;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+
+/* 連線標籤 */
+#link-labels {
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:8;
+}
+
+.lk {
+  position:absolute;
+  left:0;
+  top:0;
+  padding:2px 9px;
+  border-radius:999px;
+  background:rgba(255,255,255,.88);
+  box-shadow:0 2px 8px rgba(80,90,140,.15);
+  color:#5b5880;
+  font-size:11px;
+  font-weight:600;
+  line-height:1.5;
+  white-space:nowrap;
+  text-align:center;
+  pointer-events:none;
+  user-select:none;
+  will-change:transform,opacity;
+  opacity:1;
+}
+
+.footer {
+  position:absolute;
+  left:0;
+  bottom:0;
+  width:100%;
+  padding:
+    9px 12px
+    calc(9px + env(safe-area-inset-bottom));
+  background:rgba(255,255,255,.9);
+  text-align:center;
+  font-size:12px;
+  font-weight:800;
+  color:var(--ink);
+  z-index:24;
+}
+
+.footer strong {
+  color:#d94c65;
+  font-weight:900;
+}
+
+/* 選取資訊面板 */
+.info-panel {
+  position:absolute;
+  top:0;
+  right:0;
+  bottom:28px;
+  width:min(380px,92vw);
+  padding:0;
+  border-radius:24px 0 0 0;
+  background:#fffdfb;
+  box-shadow:0 0 40px rgba(60,60,110,.22);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  pointer-events:none;
+  z-index:23;
+  transform:translateX(105%);
+  visibility:hidden;
+  transition:
+    transform .45s cubic-bezier(.2,.8,.2,1),
+    visibility .45s;
+}
+
+body.sel .info-panel {
+  transform:none;
+  visibility:visible;
+  pointer-events:auto;
+}
+
+.panel-scroll {
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding:22px 22px 26px;
+  overscroll-behavior:contain;
+  touch-action:pan-y;
+}
+
+.panel-head {
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.panel-icon {
+  width:56px;
+  height:56px;
+  flex-shrink:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  border-radius:18px;
+  background:var(--panel-color,#ffd98a);
+  box-shadow:inset 0 -4px 0 rgba(0,0,0,.08);
+  font-size:32px;
+}
+
+.panel-title-area {
+  flex:1;
+  min-width:0;
+}
+
+.panel-title {
+  margin:0;
+  font-size:22px;
+  font-weight:900;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+
+.panel-subtitle {
+  margin-top:3px;
+  color:var(--muted);
+  font-size:12.5px;
+}
+
+.panel-close {
+  width:34px;
+  height:34px;
+  flex-shrink:0;
+  border:0;
+  border-radius:50%;
+  background:#f1eef8;
+  color:var(--ink);
+  font-size:18px;
+  font-weight:800;
+}
+
+.panel-section {
+  margin-top:23px;
+}
+
+.section-heading {
+  margin:0 0 12px;
+  color:var(--ink);
+  font-size:15px;
+  font-weight:900;
+}
+
+.panel-progress-head {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.panel-progress-number {
+  font-size:20px;
+  font-weight:900;
+}
+
+.panel-progress-track {
+  height:14px;
+  margin-top:10px;
+  border-radius:999px;
+  background:#efebf7;
+  overflow:hidden;
+}
+
+.panel-progress-fill {
+  height:100%;
+  width:0;
+  border-radius:inherit;
+  background:var(--panel-color);
+  transition:width .08s;
+}
+
+.progress-slider {
+  appearance:none;
+  -webkit-appearance:none;
+  display:block;
+  width:100%;
+  height:6px;
+  margin:22px 0 17px;
+  border:0;
+  border-radius:999px;
+  background:#e9e4f4;
+  outline:none;
+  cursor:pointer;
+  touch-action:pan-y;
+}
+
+.progress-slider::-webkit-slider-thumb {
+  appearance:none;
+  -webkit-appearance:none;
+  width:24px;
+  height:24px;
+  border:4px solid #ffffff;
+  border-radius:50%;
+  background:var(--panel-color);
+  box-shadow:0 2px 9px rgba(80,90,140,.22);
+}
+
+.progress-slider::-moz-range-thumb {
+  width:16px;
+  height:16px;
+  border:4px solid #ffffff;
+  border-radius:50%;
+  background:var(--panel-color);
+  box-shadow:0 2px 9px rgba(80,90,140,.22);
+}
+
+.slider-help {
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.6;
+}
+
+.panel-items {
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+}
+
+.panel-item {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:65px;
+  padding:11px 12px;
+  border:1px solid #efeaf8;
+  border-radius:14px;
+  background:#faf8ff;
+}
+
+.panel-item-text {
+  flex:1;
+  min-width:0;
+}
+
+.panel-item-label {
+  font-size:14px;
+  font-weight:800;
+  overflow-wrap:anywhere;
+}
+
+.panel-item-note {
+  margin-top:5px;
+  color:var(--muted);
+  font-size:11.5px;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+}
+
+.panel-item-value {
+  max-width:48%;
+  min-width:45px;
+  padding:3px 2px;
+  border-bottom:2px dashed #cfc6e6;
+  color:var(--ink);
+  font-size:13px;
+  font-weight:900;
+  text-align:right;
+  outline:none;
+  overflow-wrap:anywhere;
+  cursor:text;
+  touch-action:auto;
+}
+
+.panel-item-value:focus {
+  background:#ffffff;
+  border-bottom-color:var(--panel-color);
+}
+
+.tip-box {
+  padding:13px 14px;
+  border-radius:14px;
+  background:#fff6dd;
+  font-size:13px;
+  line-height:1.6;
+}
+
+.relation-list {
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.relation-button {
+  display:flex;
+  align-items:center;
+  width:100%;
+  gap:9px;
+  padding:11px 12px;
+  border:0;
+  border-radius:12px;
+  background:#f4f9fb;
+  color:var(--ink);
+  text-align:left;
+  font-size:12px;
+  font-weight:700;
+}
+
+.relation-button:hover {
+  filter:brightness(.97);
+}
+
+.relation-arrow {
+  color:#6a9db0;
+  font-size:17px;
+  font-weight:900;
+  flex-shrink:0;
+}
+
+.relation-name {
+  flex:1;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+
+.relation-caption {
+  color:var(--muted);
+  font-size:10.5px;
+  font-weight:600;
+  text-align:right;
+  max-width:50%;
+  overflow-wrap:anywhere;
+}
+
+.panel-disclaimer {
+  margin:24px 0 0;
+  color:#a8581f;
+  font-size:11.5px;
+  line-height:1.7;
+}
+
+#webgl-error {
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:linear-gradient(#e7f8fb,#bfe8f1);
+  color:var(--ink);
+  font-size:16px;
+  font-weight:800;
+  text-align:center;
+  z-index:100;
+}
+
+@media (max-width:1100px) {
+  .hint { top:112px; }
+}
+
+/* 手機／直式：與 JS 共用相同斷點 */
+@media (max-width:759px), (max-aspect-ratio:85/100) {
+  .header-card {
+    top:max(8px,env(safe-area-inset-top));
+    left:8px;
+    padding:7px 10px;
+    border-radius:16px;
+    max-width:calc(100vw - 110px);
+  }
+
+  .header-card h1 { font-size:18px; }
+
+  .header-card .subtitle {
+    font-size:10px;
+    line-height:1.3;
+  }
+
+  .example-badge {
+    margin-top:4px;
+    padding:2px 6px;
+    font-size:9px;
+  }
+
+  .toolbar {
+    top:max(8px,env(safe-area-inset-top));
+    right:8px;
+    gap:5px;
+  }
+
+  body.sel .toolbar {
+    right:8px;
+  }
+
+  .tool-button {
+    width:38px;
+    height:38px;
+    padding:0;
+    font-size:19px;
+  }
+
+  .tool-button .button-text {
+    display:none;
+  }
+
+  .hint {
+    top:auto;
+    bottom:calc(56px + env(safe-area-inset-bottom));
+    max-width:calc(100vw - 16px);
+    padding:6px 10px;
+    font-size:10px;
+    white-space:normal;
+    text-align:center;
+  }
+
+  .island-label {
+    width:auto;
+    min-width:98px;
+    padding:6px 9px;
+    border:2px solid var(--island-color);
+    border-radius:12px;
+    box-shadow:0 5px 14px rgba(80,90,140,.16);
+    text-align:center;
+  }
+
+  .island-label:hover,
+  .island-label.selected {
+    box-shadow:0 5px 14px rgba(80,90,140,.16);
+  }
+
+  .label-top {
+    justify-content:center;
+    gap:5px;
+  }
+
+  .label-title-group {
+    display:block;
+    flex:0 1 auto;
+  }
+
+  .label-emoji { font-size:13px; }
+  .label-name { font-size:13px; }
+
+  .label-percent {
+    font-size:12px;
+    margin-left:0;
+  }
+
+  .label-sub,
+  .label-items {
+    display:none;
+  }
+
+  .progress-track {
+    height:5px;
+    margin-top:4px;
+    background:rgba(122,119,148,.13);
+  }
+
+  .progress-fill { filter:none; }
+
+  .lk {
+    font-size:10px;
+    padding:1px 7px;
+    opacity:0;
+  }
+
+  .lk.related { opacity:1; }
+
+  body.sel .header-card {
+    opacity:0;
+    pointer-events:none;
+  }
+
+  body.sel .island-label {
+    opacity:0;
+    pointer-events:none;
+  }
+
+  .info-panel {
+    top:auto;
+    left:0;
+    right:0;
+    bottom:28px;
+    bottom:calc(28px + env(safe-area-inset-bottom));
+    width:100%;
+    max-height:54vh;
+    max-height:54dvh;
+    padding:0;
+    border-radius:24px 24px 0 0;
+    z-index:20;
+    transform:translateY(105%);
+  }
+
+  body.sel .info-panel {
+    transform:none;
+  }
+
+  .panel-scroll { padding:16px 18px 20px; }
+
+  .panel-section {
+    margin-top:19px;
+  }
+
+  .footer {
+    font-size:10px;
+    padding:8px 6px
+      calc(8px + env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  *,*::before,*::after {
+    transition-duration:.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+<canvas id="world"></canvas>
+
+<div id="ui">
+  <div class="header-card">
+    <h1 id="page-title"></h1>
+    <div id="page-subtitle" class="subtitle"></div>
+    <div id="page-badge" class="example-badge"></div>
+  </div>
+
+  <div class="toolbar">
+    <button id="reset-button"
+      class="tool-button"
+      type="button"
+      aria-label="重置視角"
+      title="重置視角">
+      🧭 <span class="button-text">重置視角</span>
+    </button>
+    <button id="rotate-button"
+      class="tool-button"
+      type="button"
+      aria-label="自動旋轉"
+      aria-pressed="false"
+      title="自動旋轉">
+      🔄 <span class="button-text">自動旋轉</span>
+    </button>
+  </div>
+
+  <div id="hint" class="hint">
+    👆 拖曳旋轉・滾輪／雙指縮放・點島嶼看細節
+  </div>
+
+  <div id="labels"></div>
+  <div id="link-labels"></div>
+
+  <aside id="info-panel"
+    class="info-panel"
+    role="dialog"
+    aria-modal="false"
+    aria-label="島嶼資訊"
+    aria-hidden="true">
+    <div class="panel-scroll">
+
+    <div class="panel-head">
+      <div id="panel-icon" class="panel-icon"></div>
+      <div class="panel-title-area">
+        <h2 id="panel-title" class="panel-title"></h2>
+        <div id="panel-subtitle"
+          class="panel-subtitle"></div>
+      </div>
+      <button id="panel-close"
+        class="panel-close"
+        type="button"
+        aria-label="關閉資訊面板">✕</button>
+    </div>
+
+    <section class="panel-section">
+      <div class="panel-progress-head">
+        <h3 class="section-heading">目前進度</h3>
+        <span id="panel-progress-number"
+          class="panel-progress-number"></span>
+      </div>
+
+      <div class="panel-progress-track">
+        <div id="panel-progress-fill"
+          class="panel-progress-fill"></div>
+      </div>
+
+      <input id="progress-slider"
+        class="progress-slider"
+        type="range"
+        min="0"
+        max="100"
+        step="1"
+        value="0"
+        aria-label="試玩目前進度">
+
+      <div class="slider-help">
+        ↑ 拖拉滑桿可試玩；重新整理會回到 ISLAND_DATA 的數字
+      </div>
+    </section>
+
+    <section class="panel-section">
+      <h3 class="section-heading">
+        📌 項目（點右邊數字可試改）
+      </h3>
+      <div id="panel-items" class="panel-items"></div>
+    </section>
+
+    <section class="panel-section">
+      <h3 class="section-heading">💡 小提醒</h3>
+      <div id="panel-tip" class="tip-box"></div>
+    </section>
+
+    <section class="panel-section">
+      <h3 class="section-heading">
+        🔗 和其他島的關係
+      </h3>
+      <div id="panel-relations"
+        class="relation-list"></div>
+    </section>
+
+    <p class="panel-disclaimer">
+      ※ 範例資料，數字皆為虛構。想永久修改，請編輯最上方的 ISLAND_DATA。
+    </p>
+    </div>
+  </aside>
+
+  <footer class="footer">
+    <span id="footer-text"></span>
+    <strong id="footer-warning"></strong>
+  </footer>
+</div>
+
+<div id="webgl-error" role="alert">
+  你的瀏覽器或裝置不支援 WebGL，請改用最新版 Chrome / Safari / Edge 開啟。
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ========================================================
+// 唯一可編輯的理財資料。
+// 名稱、數字、顏色、位置與連線都集中在此。
+// ========================================================
+const ISLAND_DATA = {
+  meta: {
+    title:"個人理財島",
+    subtitle:"32 歲台北行銷專員的理財規劃（虛構範例）",
+    badge:"⚠ 範例資料｜數字皆為虛構",
+    footer:"個人理財規劃示意，非投資建議"
+  },
+  islands: [
+    {
+      id:"income", emoji:"🌱", name:"收入", sub:"本業與接案收入",
+      color:"#ffd98a", progress:80, pos:[-8.4,0],
+      tip:"先掌握每月固定收入與接案收入，再規劃儲蓄、生活費及年度獎金的用途。",
+      items:[
+        {label:"本業薪資",value:"NT$ 50,000",note:"每月固定薪資"},
+        {label:"接案收入",value:"NT$ 5,000",note:"每月約略收入"},
+        {label:"年終獎金",value:"約 1.5 個月",note:"依實際年度情況調整"}
+      ]
+    },
+    {
+      id:"saving", emoji:"🐷", name:"存款", sub:"緊急預備金",
+      color:"#a8e6cf", progress:60, pos:[-2.6,-4.4],
+      tip:"把緊急預備金放在容易提領的帳戶，每月固定存入，逐步達到 15 萬目標。",
+      items:[
+        {label:"目前預備金",value:"NT$ 90,000",note:"保留作為緊急支出"},
+        {label:"預備金目標",value:"NT$ 150,000",note:"目前已完成約 60%"},
+        {label:"每月自動存",value:"NT$ 8,000",note:"薪資入帳後自動轉存"}
+      ]
+    },
+    {
+      id:"debt", emoji:"🪨", name:"負債", sub:"維持零負債",
+      color:"#cdb8f5", progress:100, pos:[-2.6,4.4],
+      tip:"維持信用卡全額繳清的習慣，避免循環利息及不必要的高利負債。",
+      items:[
+        {label:"信用卡",value:"無欠款",note:"每期全額繳清"},
+        {label:"其他負債",value:"無",note:"目前無其他借款"},
+        {label:"每月還款",value:"NT$ 0",note:"目前沒有固定還款"}
+      ]
+    },
+    {
+      id:"invest", emoji:"📈", name:"投資", sub:"長期定期定額",
+      color:"#ffb8cc", progress:40, pos:[4.2,-4.4],
+      tip:"以長期閒錢定期定額、留意分散風險；投資會漲也會跌，應依自身承受能力調整。",
+      items:[
+        {label:"定期定額",value:"每月 NT$ 5,000",note:"以長期閒錢投入"},
+        {label:"投資期間",value:"15 年",note:"長期規劃，可適時檢視"},
+        {label:"目前累積",value:"NT$ 60,000",note:"會漲也會跌"}
+      ]
+    },
+    {
+      id:"insurance", emoji:"☂️", name:"保險", sub:"醫療與意外保障",
+      color:"#b9c9ff", progress:80, pos:[4.2,4.4],
+      tip:"定期檢查醫療與意外保障是否符合現況，並確認年度保費在可負擔範圍內。",
+      items:[
+        {label:"醫療險",value:"已備",note:"定期檢視保障內容"},
+        {label:"意外險",value:"已備",note:"確認保障及理賠範圍"},
+        {label:"年繳保費",value:"NT$ 20,000",note:"納入年度預算"}
+      ]
+    },
+    {
+      id:"dream", emoji:"🏰", name:"夢想基金", sub:"旅行與職涯進修",
+      color:"#ffc9a3", progress:20, pos:[10.2,0],
+      tip:"替歐洲旅行和證照進修分別編列預算，每月固定提撥，逐步完成目標。",
+      items:[
+        {label:"歐洲旅行",value:"3 / 15 萬",note:"旅行基金已存 3 萬"},
+        {label:"證照課程",value:"NT$ 20,000",note:"職涯進修規劃預算"},
+        {label:"每月撥入",value:"NT$ 3,000",note:"固定累積夢想基金"}
+      ]
+    }
+  ],
+  links: [
+    {from:"income",to:"saving",label:"先存再花"},
+    {from:"income",to:"debt",label:"固定還款"},
+    {from:"saving",to:"invest",label:"閒錢才投資"},
+    {from:"saving",to:"insurance",label:"保費預算"},
+    {from:"debt",to:"insurance",label:"先清高利債"},
+    {from:"invest",to:"dream",label:"長期累積"},
+    {from:"insurance",to:"dream",label:"守住夢想"}
+  ]
+};
+
+const TOP=0.5;
+const HEX_RADIUS=0.87;
+const HEX_STEP=0.95;
+const TAU=Math.PI*2;
+
+// 排列順序對應 ISLAND_DATA.islands。
+// 改 ID 不會遺失原有形狀。
+// 若資料超出既有六種，使用通用六角島。
+const TILE_LAYOUTS=[
+  [[0,0],[1,0],[-1,0],[0,1],
+   [0,-1],[1,-1],[-1,1]],
+  [[0,0],[1,0],[-1,0],[0,1],
+   [0,-1],[1,-1],[2,-1],[-1,1]],
+  [[0,0],[1,0],[-1,0],[0,1],
+   [0,-1],[-1,1]],
+  [[0,0],[1,0],[-1,0],[0,1],
+   [0,-1],[1,-1],[-1,1],[2,0]],
+  [[0,0],[1,0],[-1,0],[0,1],
+   [0,-1],[1,-1],[-1,1],[-2,1]],
+  [[0,0],[1,0],[-1,0],[0,1],
+   [0,-1],[1,-1],[-1,1],[1,1]]
+];
+
+const DEFAULT_TILES=[
+  [0,0],[1,0],[-1,0],[0,1],
+  [0,-1],[1,-1],[-1,1]
+];
+
+const TREE_COLORS=[
+  "#9be0b3","#8ad4a6",
+  "#b4e8b5","#c9f0b8"
+];
+
+const FLOWER_COLORS=[
+  "#ffb3c7","#fff0a8","#ffffff"
+];
+
+const GOLD_COLOR="#ffd36b";
+const $=id=>document.getElementById(id);
+
+function esc(value) {
+  return String(value??"")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#39;");
+}
+
+$("page-title").textContent=
+  "🏝️ "+ISLAND_DATA.meta.title;
+$("page-subtitle").textContent=
+  ISLAND_DATA.meta.subtitle;
+$("page-badge").textContent=
+  ISLAND_DATA.meta.badge;
+$("footer-text").textContent=
+  ISLAND_DATA.meta.footer+"｜";
+$("footer-warning").textContent=
+  ISLAND_DATA.meta.badge
+    .replace(/^⚠\s*/,"")
+    .replace("範例資料｜","範例資料，");
+document.title=ISLAND_DATA.meta.title;
+
+const canvas=$("world");
+const reducedMotion=window.matchMedia(
+  "(prefers-reduced-motion: reduce)"
+).matches;
+
+function isMobileLayout() {
+  const w=window.innerWidth;
+  const h=window.innerHeight;
+  return w<760||w/h<0.85;
+}
+
+let renderer=null;
+
+try {
+  renderer=new THREE.WebGLRenderer({
+    canvas,
+    antialias:true,
+    alpha:false,
+    powerPreference:"high-performance"
+  });
+  renderer.setPixelRatio(
+    Math.min(window.devicePixelRatio||1,2)
+  );
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  renderer.outputColorSpace=THREE.SRGBColorSpace;
+  renderer.setClearColor(0xc9ecf4);
+} catch(error) {
+  $("webgl-error").style.display="flex";
+  console.error(error);
+}
+
+if(renderer) startWorld();
+
+function startWorld() {
+
+  const scene=new THREE.Scene();
+  scene.background=new THREE.Color(0xc9ecf4);
+  scene.fog=new THREE.Fog(0xc9ecf4,50,120);
+
+  const camera=new THREE.PerspectiveCamera(
+    38,1,0.5,300
+  );
+
+  const controls=new OrbitControls(camera,canvas);
+  controls.enableDamping=true;
+  controls.dampingFactor=0.08;
+  controls.enablePan=true;
+  controls.minDistance=7;
+  controls.maxDistance=70;
+  controls.minPolarAngle=0.2;
+  controls.maxPolarAngle=1.38;
+  controls.rotateSpeed=0.7;
+  controls.autoRotate=false;
+  controls.autoRotateSpeed=0.35;
+
+  canvas.style.touchAction="none";
+
+  let mobile=isMobileLayout();
+
+  const hemisphere=new THREE.HemisphereLight(
+    0xffffff,0xbfe3ee,1.9
+  );
+  scene.add(hemisphere);
+
+  const sunlight=new THREE.DirectionalLight(
+    0xfff4e0,2.2
+  );
+  sunlight.position.set(-12,22,14);
+  sunlight.castShadow=true;
+  sunlight.shadow.mapSize.set(
+    mobile?1024:2048,
+    mobile?1024:2048
+  );
+  sunlight.shadow.camera.left=-24;
+  sunlight.shadow.camera.right=24;
+  sunlight.shadow.camera.top=24;
+  sunlight.shadow.camera.bottom=-24;
+  sunlight.shadow.camera.near=0.5;
+  sunlight.shadow.camera.far=80;
+  sunlight.shadow.bias=-0.0006;
+  sunlight.shadow.normalBias=0.025;
+  sunlight.shadow.radius=3;
+  scene.add(sunlight,sunlight.target);
+
+  const standard=(color,extra={})=>
+    new THREE.MeshStandardMaterial({
+      color,
+      roughness:0.85,
+      metalness:0,
+      ...extra
+    });
+
+  const gold=standard(GOLD_COLOR,{
+    roughness:0.35,
+    metalness:0.25
+  });
+
+  function mesh(parent,geometry,material,
+                x=0,y=0,z=0) {
+    const object=new THREE.Mesh(
+      geometry,material
+    );
+    object.position.set(x,y,z);
+    object.castShadow=true;
+    object.receiveShadow=true;
+    parent.add(object);
+    return object;
+  }
+
+  const sphereGeometryCache=new Map();
+
+  function getSphereGeometry(radius) {
+    if(!sphereGeometryCache.has(radius)) {
+      sphereGeometryCache.set(
+        radius,
+        new THREE.SphereGeometry(radius,12,9)
+      );
+    }
+    return sphereGeometryCache.get(radius);
+  }
+
+  const colorMaterialCache=new Map();
+
+  function colorMaterial(color) {
+    if(typeof color!=="string") return color;
+    if(!colorMaterialCache.has(color)) {
+      colorMaterialCache.set(
+        color,standard(color)
+      );
+    }
+    return colorMaterialCache.get(color);
+  }
+
+  function ball(parent,radius,color,x,y,z,
+                scale=[1,1,1]) {
+    const object=mesh(
+      parent,
+      getSphereGeometry(radius),
+      colorMaterial(color),
+      x,y,z
+    );
+    object.scale.set(...scale);
+    return object;
+  }
+
+  function cylinder(parent,rt,rb,height,color,
+                    x,y,z,segments=10) {
+    return mesh(
+      parent,
+      new THREE.CylinderGeometry(
+        rt,rb,height,segments
+      ),
+      colorMaterial(color),x,y,z
+    );
+  }
+
+  function box(parent,w,h,d,color,x,y,z) {
+    return mesh(
+      parent,
+      new THREE.BoxGeometry(w,h,d),
+      colorMaterial(color),x,y,z
+    );
+  }
+
+  function cone(parent,radius,height,color,
+                x,y,z,segments=8) {
+    return mesh(
+      parent,
+      new THREE.ConeGeometry(
+        radius,height,segments
+      ),
+      colorMaterial(color),x,y,z
+    );
+  }
+
+  function torus(parent,radius,tube,color,
+                 x,y,z,arc=TAU) {
+    return mesh(
+      parent,
+      new THREE.TorusGeometry(
+        radius,tube,7,24,arc
+      ),
+      colorMaterial(color),x,y,z
+    );
+  }
+
+  function coin(parent,radius,x,y,z) {
+    return cylinder(
+      parent,radius,radius,0.06,
+      gold,x,y,z,20
+    );
+  }
+
+  function axialToXZ(q,r) {
+    return [
+      HEX_STEP*Math.sqrt(3)*(q+r/2),
+      HEX_STEP*1.5*r
+    ];
+  }
+
+  function seededRandom(seed) {
+    let state=seed>>>0;
+    return ()=>{
+      state=(
+        Math.imul(state,1664525)+1013904223
+      )>>>0;
+      return state/4294967296;
+    };
+  }
+
+  function seedFromId(id) {
+    let result=2166136261;
+    for(let i=0;i<id.length;i++) {
+      result^=id.charCodeAt(i);
+      result=Math.imul(result,16777619);
+    }
+    return result>>>0;
+  }
+
+  // ====================================================
+  // 海面
+  // ====================================================
+
+  const seaGeometry=new THREE.PlaneGeometry(
+    240,240,70,70
+  );
+  seaGeometry.rotateX(-Math.PI/2);
+
+  const seaPositions=seaGeometry.attributes.position;
+  const originalSeaY=new Float32Array(
+    seaPositions.count
+  );
+
+  for(let i=0;i<seaPositions.count;i++) {
+    originalSeaY[i]=seaPositions.getY(i);
+  }
+
+  const sea=mesh(
+    scene,seaGeometry,
+    standard(0x9edcec,{
+      roughness:0.55,
+      flatShading:true,
+      side:THREE.DoubleSide
+    }),0,-0.08,0
+  );
+  sea.castShadow=true;
+  sea.receiveShadow=true;
+
+  function animateSea(time) {
+    for(let i=0;i<seaPositions.count;i++) {
+      const x=seaPositions.getX(i);
+      const z=seaPositions.getZ(i);
+      const wave=
+        Math.sin(x*0.42+time*0.6)*0.027+
+        Math.cos(z*0.35-time*0.48)*0.023;
+      seaPositions.setY(
+        i,originalSeaY[i]+wave
+      );
+    }
+    seaPositions.needsUpdate=true;
+    seaGeometry.computeVertexNormals();
+  }
+
+  // ====================================================
+  // 六角柱地磚
+  // ====================================================
+
+  function makeHexShape() {
+    const shape=new THREE.Shape();
+    for(let i=0;i<6;i++) {
+      const angle=Math.PI/2+i*TAU/6;
+      const x=Math.cos(angle)*HEX_RADIUS;
+      const y=Math.sin(angle)*HEX_RADIUS;
+      if(i===0) shape.moveTo(x,y);
+      else shape.lineTo(x,y);
+    }
+    shape.closePath();
+    return shape;
+  }
+
+  function makeHexGeometry(height) {
+    const geometry=new THREE.ExtrudeGeometry(
+      makeHexShape(),{
+        depth:height,
+        steps:1,
+        bevelEnabled:true,
+        bevelThickness:0.05,
+        bevelSize:0.05,
+        bevelSegments:2,
+        curveSegments:1
+      }
+    );
+    geometry.rotateX(-Math.PI/2);
+    return geometry;
+  }
+
+  const lowerHexGeometry=makeHexGeometry(1.3);
+  const upperHexGeometry=makeHexGeometry(0.32);
+  const sandMaterial=standard("#f6e3bd",{
+    roughness:0.9,
+    flatShading:true
+  });
+  const islandMaterials=new Map();
+  const sandBottom=0.3-1.3-0.05;
+  const upperBottom=TOP-0.32-0.05;
+
+  function addHexTile(parent,color,q,r) {
+    const [x,z]=axialToXZ(q,r);
+    const sand=mesh(
+      parent,lowerHexGeometry,
+      sandMaterial,x,sandBottom,z
+    );
+
+    if(!islandMaterials.has(color)) {
+      islandMaterials.set(
+        color,standard(color,{
+          roughness:0.85,
+          flatShading:true
+        })
+      );
+    }
+
+    const upper=mesh(
+      parent,upperHexGeometry,
+      islandMaterials.get(color),
+      x,upperBottom,z
+    );
+
+    sand.userData.isTile=true;
+    upper.userData.isTile=true;
+    return [sand,upper];
+  }
+
+  // ====================================================
+  // 小樹與花
+  // ====================================================
+
+  function addSmallTree(parent,x,z,scale,index) {
+    const group=new THREE.Group();
+    group.position.set(x,TOP,z);
+    group.scale.setScalar(scale);
+    parent.add(group);
+
+    cylinder(
+      group,0.075,0.095,0.45,
+      "#b98b62",0,0.225,0,8
+    );
+    cone(
+      group,0.42,0.7,
+      TREE_COLORS[index%TREE_COLORS.length],
+      0,0.67,0,8
+    );
+    cone(
+      group,0.33,0.6,
+      TREE_COLORS[(index+1)%TREE_COLORS.length],
+      0,1.02,0,8
+    );
+    return group;
+  }
+
+  function addFlower(parent,x,z,color) {
+    return ball(
+      parent,0.06,color,x,TOP+0.06,z
+    );
+  }
+
+  function decorateIsland(parent,tiles,id) {
+    const rand=seededRandom(seedFromId(id));
+    const outer=tiles.filter(
+      ([q,r])=>q!==0||r!==0
+    );
+    if(!outer.length) return;
+
+    const choices=[...outer];
+
+    for(let i=choices.length-1;i>0;i--) {
+      const j=Math.floor(rand()*(i+1));
+      [choices[i],choices[j]]=[
+        choices[j],choices[i]
+      ];
+    }
+
+    const treeCount=3+Math.floor(rand()*2);
+
+    for(let i=0;i<treeCount;i++) {
+      const [q,r]=choices[i%choices.length];
+      const [tx,tz]=axialToXZ(q,r);
+      const dx=(rand()-0.5)*0.22;
+      const dz=(rand()-0.5)*0.22;
+      const scale=0.62+rand()*0.28;
+      addSmallTree(
+        parent,tx+dx,tz+dz,scale,i
+      );
+    }
+
+    for(let i=0;i<10;i++) {
+      const [q,r]=outer[
+        Math.floor(rand()*outer.length)
+      ];
+      const [tx,tz]=axialToXZ(q,r);
+      const dx=(rand()-0.5)*0.82;
+      const dz=(rand()-0.5)*0.82;
+      addFlower(
+        parent,tx+dx,tz+dz,
+        FLOWER_COLORS[i%FLOWER_COLORS.length]
+      );
+    }
+  }
+
+  // ====================================================
+  // 主題擺設一：搖錢樹
+  // ====================================================
+
+  function makeIncome(parent) {
+    const group=new THREE.Group();
+    parent.add(group);
+
+    cylinder(
+      group,0.19,0.26,1.3,
+      "#b98b62",0,TOP+0.65,0,10
+    );
+
+    const leafMaterial=colorMaterial("#93dbad");
+    const crowns=[
+      [0,2.05,0,0.85],
+      [-0.56,2.28,0.05,0.58],
+      [0.52,2.33,0.05,0.60],
+      [0.02,2.48,-0.43,0.50]
+    ];
+
+    for(const [x,y,z,r] of crowns) {
+      ball(group,r,leafMaterial,x,y,z);
+    }
+
+    const coinLocations=[
+      [-0.65,2.19,0.48],
+      [-0.25,2.55,0.73],
+      [0.30,2.34,0.79],
+      [0.74,2.05,0.28],
+      [-0.78,1.85,0.22],
+      [0.15,2.78,0.38],
+      [0.65,2.57,-0.18],
+      [-0.43,2.70,-0.22]
+    ];
+
+    for(const [x,y,z] of coinLocations) {
+      const c=coin(group,0.2,x,y,z);
+      c.rotation.x=Math.PI/2;
+    }
+
+    for(let i=0;i<5;i++) {
+      coin(
+        group,0.26,1.08,
+        TOP+0.04+i*0.065,0.75
+      );
+    }
+    return group;
+  }
+
+  // ====================================================
+  // 主題擺設二：小豬撲滿
+  // ====================================================
+
+  function makeSaving(parent) {
+    const group=new THREE.Group();
+    group.rotation.y=-0.5;
+    parent.add(group);
+
+    const pink=colorMaterial("#ffb6c9");
+    const snout=colorMaterial("#ff95b0");
+    const eyes=colorMaterial("#4a3a50");
+
+    ball(
+      group,0.58,pink,0,TOP+0.75,0,
+      [1.2,0.92,0.95]
+    );
+    ball(
+      group,0.38,pink,0.49,TOP+0.91,0.06
+    );
+
+    const nose=cylinder(
+      group,0.17,0.17,0.12,
+      snout,0.83,TOP+0.86,0.09,12
+    );
+    nose.rotation.z=Math.PI/2;
+
+    for(const z of [-0.14,0.14]) {
+      ball(
+        group,0.045,eyes,
+        0.77,TOP+0.87,z
+      );
+    }
+
+    for(const z of [-0.18,0.18]) {
+      const ear=cone(
+        group,0.14,0.27,pink,
+        0.39,TOP+1.30,z,4
+      );
+      ear.rotation.z=-0.18;
+    }
+
+    for(const x of [-0.4,0.38]) {
+      for(const z of [-0.35,0.35]) {
+        cylinder(
+          group,0.13,0.15,0.32,
+          pink,x,TOP+0.16,z,8
+        );
+      }
+    }
+
+    box(
+      group,0.12,0.018,0.34,
+      "#c2607e",0,TOP+1.29,0
+    );
+
+    const tail=torus(
+      group,0.16,0.045,pink,
+      -0.77,TOP+0.91,0,
+      Math.PI*1.7
+    );
+    tail.rotation.y=Math.PI/2;
+
+    for(let i=0;i<4;i++) {
+      coin(
+        group,0.22,-1.1,
+        TOP+0.04+i*0.065,0.72
+      );
+    }
+    return group;
+  }
+
+  // ====================================================
+  // 主題擺設三：負債石頭
+  // ====================================================
+
+  const animatedFlags=[];
+
+  function makeDebt(parent) {
+    const group=new THREE.Group();
+    parent.add(group);
+
+    const rocks=[
+      [0,TOP+0.42,0,0.8,"#c7b3ee"],
+      [-0.78,TOP+0.24,0.46,0.45,"#d6c6f7"],
+      [0.79,TOP+0.25,0.28,0.50,"#bba6e6"],
+      [0.39,TOP+0.21,-0.74,0.34,"#d6c6f7"]
+    ];
+
+    for(const [x,y,z,r,color] of rocks) {
+      const obj=mesh(
+        group,
+        new THREE.DodecahedronGeometry(r,0),
+        standard(color,{
+          flatShading:true,
+          roughness:0.9
+        }),x,y,z
+      );
+      obj.scale.y=0.8;
+    }
+
+    ball(
+      group,0.4,"#8f80b8",
+      -0.98,TOP+0.4,-0.64
+    );
+
+    for(let i=0;i<3;i++) {
+      const link=torus(
+        group,0.14,0.045,
+        "#8f80b8",
+        -0.65+i*0.23,
+        TOP+0.17,
+        -0.75+i*0.06
+      );
+      link.rotation.x=Math.PI/2;
+    }
+
+    cylinder(
+      group,0.035,0.035,1.5,
+      "#8d7bb0",0.93,TOP+0.75,-0.65,8
+    );
+
+    const flagPivot=new THREE.Group();
+    flagPivot.position.set(
+      0.93,TOP+1.29,-0.65
+    );
+    group.add(flagPivot);
+
+    const flagShape=new THREE.Shape();
+    flagShape.moveTo(0,0);
+    flagShape.lineTo(0.63,0.12);
+    flagShape.lineTo(0.51,-0.30);
+    flagShape.lineTo(0,-0.30);
+    flagShape.closePath();
+
+    mesh(
+      flagPivot,
+      new THREE.ShapeGeometry(flagShape),
+      standard("#8fe0bf",{
+        side:THREE.DoubleSide
+      })
+    );
+
+    animatedFlags.push(flagPivot);
+    return group;
+  }
+
+  // ====================================================
+  // 主題擺設四：投資圖表
+  // ====================================================
+
+  function makeInvest(parent) {
+    const group=new THREE.Group();
+    parent.add(group);
+
+    const heights=[0.8,1.25,1.75,2.3];
+    const colors=[
+      "#ffd1dc","#ffc2d1",
+      "#ffb0c6","#ff9db8"
+    ];
+
+    for(let i=0;i<4;i++) {
+      const h=heights[i];
+      const bar=mesh(
+        group,
+        new THREE.CapsuleGeometry(
+          0.24,h,5,10
+        ),
+        standard(colors[i],{
+          roughness:0.8
+        }),
+        -1.05+i*0.7,
+        TOP+0.24+h/2,0
+      );
+      bar.userData.isBar=true;
+    }
+
+    const arrow=cone(
+      group,0.31,0.48,
+      "#8fd9a8",1.38,TOP+2.72,0,4
+    );
+    arrow.rotation.z=-0.15;
+
+    cylinder(
+      group,0.09,0.09,0.64,
+      "#8fd9a8",
+      1.35,TOP+2.27,0,8
+    );
+
+    const groundCoin=coin(
+      group,0.3,0.85,
+      TOP+0.15,0.85
+    );
+    groundCoin.rotation.z=0.42;
+    groundCoin.rotation.x=0.5;
+    return group;
+  }
+
+  // ====================================================
+  // 主題擺設五：保險雨傘
+  // ====================================================
+
+  function makeInsurance(parent) {
+    const group=new THREE.Group();
+    group.rotation.z=0.1;
+    parent.add(group);
+
+    cylinder(
+      group,0.065,0.065,2.1,
+      "#8d7bb0",0,TOP+1.05,0,10
+    );
+
+    const segmentCount=10;
+    const radius=1.35;
+    const height=0.85;
+    const umbrellaY=TOP+2.12;
+
+    for(let i=0;i<segmentCount;i++) {
+      const a=i*TAU/segmentCount;
+      const b=(i+1)*TAU/segmentCount;
+      const verts=new Float32Array([
+        0,height,0,
+        radius*Math.cos(a),0,
+        radius*Math.sin(a),
+        radius*Math.cos(b),0,
+        radius*Math.sin(b)
+      ]);
+
+      const geometry=new THREE.BufferGeometry();
+      geometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(verts,3)
+      );
+      geometry.computeVertexNormals();
+
+      mesh(
+        group,geometry,
+        standard(
+          i%2===0?"#ff9eb5":"#ffffff",
+          {
+            side:THREE.DoubleSide,
+            roughness:0.8,
+            flatShading:true
+          }
+        ),
+        0,umbrellaY,0
+      );
+    }
+
+    ball(
+      group,0.12,gold,
+      0,umbrellaY+height+0.07,0
+    );
+
+    const ringGroup=new THREE.Group();
+    ringGroup.position.set(
+      1.12,TOP+0.28,0.55
+    );
+    ringGroup.rotation.x=0.45;
+    parent.add(ringGroup);
+
+    const lifeRing=torus(
+      ringGroup,0.42,0.14,
+      "#ffffff",0,0,0
+    );
+    lifeRing.rotation.x=0;
+
+    for(let i=0;i<4;i++) {
+      const arc=torus(
+        ringGroup,0.42,0.145,
+        "#ff8fa3",
+        0,0,0,Math.PI/5
+      );
+      arc.rotation.z=i*Math.PI/2;
+    }
+    return group;
+  }
+
+  // ====================================================
+  // 主題擺設六：夢想城堡
+  // ====================================================
+
+  const animatedStars=[];
+
+  function starShape() {
+    const shape=new THREE.Shape();
+    for(let i=0;i<10;i++) {
+      const a=-Math.PI/2+i*Math.PI/5;
+      const r=i%2===0?0.56:0.25;
+      const x=Math.cos(a)*r;
+      const y=Math.sin(a)*r;
+      if(i===0) shape.moveTo(x,y);
+      else shape.lineTo(x,y);
+    }
+    shape.closePath();
+    return shape;
+  }
+
+  function makeDream(parent) {
+    const group=new THREE.Group();
+    parent.add(group);
+
+    box(
+      group,1.5,0.8,1,
+      "#fff0f5",0,TOP+0.4,0
+    );
+
+    const roofColors=[
+      "#ff9eb5","#b9a6f0",
+      "#ffc27a","#ff9eb5"
+    ];
+    let index=0;
+
+    for(const x of [-0.7,0.7]) {
+      for(const z of [-0.48,0.48]) {
+        cylinder(
+          group,0.28,0.28,1.3,
+          "#fff0f5",
+          x,TOP+0.65,z,10
+        );
+        cone(
+          group,0.39,0.55,
+          roofColors[index++],
+          x,TOP+1.57,z,8
+        );
+      }
+    }
+
+    cylinder(
+      group,0.4,0.4,1.9,
+      "#fff0f5",0,TOP+0.95,-0.1,12
+    );
+    cone(
+      group,0.56,0.72,
+      "#ff9eb5",0,TOP+2.26,-0.1,10
+    );
+    cylinder(
+      group,0.025,0.025,0.7,
+      "#b98b62",
+      0,TOP+2.92,-0.1,8
+    );
+
+    const banner=box(
+      group,0.43,0.24,0.025,
+      gold,0.22,TOP+3.07,-0.1
+    );
+    banner.rotation.z=-0.08;
+
+    box(
+      group,0.35,0.57,0.045,
+      "#b79ad8",
+      0,TOP+0.3,0.53
+    );
+
+    const starGeometry=new THREE.ExtrudeGeometry(
+      starShape(),{
+        depth:0.15,
+        bevelEnabled:true,
+        bevelThickness:0.035,
+        bevelSize:0.035,
+        bevelSegments:2
+      }
+    );
+    starGeometry.center();
+
+    const star=mesh(
+      group,starGeometry,gold,
+      1.45,TOP+1.55,0.15
+    );
+    animatedStars.push(star);
+
+    ball(
+      group,0.34,"#9fd8ff",
+      -1.25,TOP+2.15,0.35
+    );
+
+    const stringPoints=[
+      new THREE.Vector3(-1.25,TOP+1.85,0.35),
+      new THREE.Vector3(-1.21,TOP+1.35,0.38),
+      new THREE.Vector3(-1.3,TOP+0.7,0.35)
+    ];
+
+    const stringGeometry=new THREE.BufferGeometry()
+      .setFromPoints(stringPoints);
+
+    group.add(new THREE.Line(
+      stringGeometry,
+      new THREE.LineBasicMaterial({
+        color:"#8d7bb0"
+      })
+    ));
+    return group;
+  }
+
+  // 原有六種造型依資料順序分配，
+  // 不依靠使用者可修改的島嶼 ID。
+  const THEME_FACTORIES=[
+    makeIncome,
+    makeSaving,
+    makeDebt,
+    makeInvest,
+    makeInsurance,
+    makeDream
+  ];
+
+  // ====================================================
+  // 水波圈
+  // ====================================================
+
+  const ripples=[];
+
+  function makeRipples(positionGroup,index) {
+    const group=new THREE.Group();
+    group.position.set(
+      positionGroup.position.x,
+      0,
+      positionGroup.position.z
+    );
+    scene.add(group);
+
+    for(let i=0;i<2;i++) {
+      const ring=mesh(
+        group,
+        new THREE.RingGeometry(2.9,3,64),
+        new THREE.MeshBasicMaterial({
+          color:"#ffffff",
+          transparent:true,
+          opacity:0.55,
+          depthWrite:false,
+          side:THREE.DoubleSide
+        }),
+        0,0.08+i*0.004,0
+      );
+      ring.rotation.x=-Math.PI/2;
+      ripples.push({
+        mesh:ring,
+        phase:i*0.5,
+        offset:index*0.071
+      });
+    }
+    return group;
+  }
+
+  // ====================================================
+  // 島嶼、可試改資料、資訊卡
+  // ====================================================
+
+  const islands=[];
+  const islandById=new Map();
+  const draftData=new Map();
+  const labelContainer=$("labels");
+
+  let selectedIslandId=null;
+  let hoveredIslandId=null;
+
+  ISLAND_DATA.islands.forEach((data,i)=>{
+    if(!data || typeof data.id!=="string" ||
+       islandById.has(data.id)) return;
+
+    const root=new THREE.Group();
+    root.userData.islandId=data.id;
+    scene.add(root);
+
+    const tiles=TILE_LAYOUTS[i]||DEFAULT_TILES;
+
+    for(const [q,r] of tiles) {
+      const [lower,upper]=addHexTile(
+        root,data.color,q,r
+      );
+      lower.userData.islandId=data.id;
+      upper.userData.islandId=data.id;
+    }
+
+    decorateIsland(root,tiles,data.id);
+
+    // 造型 ID 改名不會 throw。
+    const factory=THEME_FACTORIES[i];
+
+    if(typeof factory==="function") {
+      factory(root);
+    }
+
+    const label=document.createElement("button");
+    label.type="button";
+    label.className="island-label card";
+    label.style.setProperty(
+      "--island-color",data.color
+    );
+
+    const topRow=document.createElement("div");
+    topRow.className="label-top";
+
+    const emoji=document.createElement("span");
+    emoji.className="label-emoji";
+    emoji.textContent=data.emoji;
+
+    const titleGroup=document.createElement("div");
+    titleGroup.className="label-title-group";
+
+    const name=document.createElement("span");
+    name.className="label-name";
+    name.textContent=data.name;
+
+    const sub=document.createElement("span");
+    sub.className="label-sub";
+    sub.textContent=data.sub;
+
+    titleGroup.append(name,sub);
+
+    const percent=document.createElement("span");
+    percent.className="label-percent";
+    percent.textContent=data.progress+"%";
+
+    topRow.append(emoji,titleGroup,percent);
+
+    const track=document.createElement("div");
+    track.className="progress-track";
+
+    const fill=document.createElement("div");
+    fill.className="progress-fill";
+    fill.style.width=data.progress+"%";
+    track.appendChild(fill);
+
+    const itemSection=document.createElement("div");
+    itemSection.className="label-items";
+
+    const itemValueElements=[];
+
+    (data.items||[]).slice(0,3).forEach(item=>{
+      const row=document.createElement("div");
+      row.className="label-item";
+
+      const itemName=document.createElement("span");
+      itemName.className="label-item-name";
+      itemName.textContent=item.label;
+
+      const value=document.createElement("span");
+      value.className="label-item-value";
+      value.textContent=item.value;
+
+      itemValueElements.push(value);
+      row.append(itemName,value);
+      itemSection.appendChild(row);
+    });
+
+    label.append(topRow,track,itemSection);
+    label.setAttribute(
+      "aria-label",
+      data.name+" "+data.progress+"%"
+    );
+    label.addEventListener("click",event=>{
+      event.stopPropagation();
+      hideHint();
+      select(data.id);
+    });
+    labelContainer.appendChild(label);
+
+    const island={
+      data,root,tiles,label,
+      percent,fill,itemValueElements,
+      phase:i*1.05,
+      rippleGroup:makeRipples(root,i)
+    };
+
+    islands.push(island);
+    islandById.set(data.id,island);
+
+    draftData.set(data.id,{
+      progress:data.progress,
+      items:(data.items||[]).map(
+        item=>({...item})
+      )
+    });
+  });
+
+  // ====================================================
+  // 動態膠囊虛線
+  // ====================================================
+
+  const linkVisuals=[];
+  const linkLabelContainer=$("link-labels");
+  const linkUpDirection=new THREE.Vector3(0,1,0);
+  const linkDummy=new THREE.Object3D();
+
+  const linkCapsuleGeometry=
+    new THREE.CapsuleGeometry(0.075,0.2,4,8);
+
+  const linkArrowGeometry=
+    new THREE.ConeGeometry(0.2,0.45,12);
+
+  const tempDirection=new THREE.Vector3();
+  const tempLinkStart=new THREE.Vector3();
+  const tempLinkEnd=new THREE.Vector3();
+  const tempLinkControl=new THREE.Vector3();
+  const tempLinkPoint=new THREE.Vector3();
+  const tempLinkTangent=new THREE.Vector3();
+
+  function makeLinkMaterial(sourceColor) {
+    const emissiveColor=new THREE.Color(sourceColor);
+    emissiveColor.lerp(
+      new THREE.Color("#ffffff"),0.15
+    );
+    return new THREE.MeshStandardMaterial({
+      color:"#ffffff",
+      emissive:emissiveColor,
+      emissiveIntensity:0.35,
+      roughness:0.5,
+      metalness:0
+    });
+  }
+
+  function createLinkCurve(fromIsland,toIsland) {
+    const from=fromIsland.root.position;
+    const to=toIsland.root.position;
+
+    tempDirection.set(
+      to.x-from.x,0,to.z-from.z
+    );
+
+    const distance=tempDirection.length();
+    if(distance<0.0001) {
+      tempDirection.set(1,0,0);
+    } else {
+      tempDirection.divideScalar(distance);
+    }
+
+    const usableStart=Math.min(3.3,distance*0.4);
+    const usableEnd=Math.min(3.5,distance*0.4);
+
+    tempLinkStart.set(
+      from.x+tempDirection.x*usableStart,
+      1,
+      from.z+tempDirection.z*usableStart
+    );
+
+    tempLinkEnd.set(
+      to.x-tempDirection.x*usableEnd,
+      1,
+      to.z-tempDirection.z*usableEnd
+    );
+
+    tempLinkControl.copy(tempLinkStart)
+      .add(tempLinkEnd)
+      .multiplyScalar(0.5);
+    tempLinkControl.y+=1.4;
+
+    // Curve 擁有自己的向量副本。
+    return new THREE.QuadraticBezierCurve3(
+      tempLinkStart.clone(),
+      tempLinkControl.clone(),
+      tempLinkEnd.clone()
+    );
+  }
+
+  function createLinkVisual(data) {
+    if(!data) return null;
+
+    const fromIsland=islandById.get(data.from);
+    const toIsland=islandById.get(data.to);
+
+    // 無效的連線直接略過。
+    if(!fromIsland||!toIsland||
+       fromIsland===toIsland) return null;
+
+    const material=makeLinkMaterial(
+      fromIsland.data.color
+    );
+
+    const curve=createLinkCurve(
+      fromIsland,toIsland
+    );
+
+    const count=Math.max(
+      6,Math.ceil(curve.getLength()/0.62)
+    );
+
+    const dots=new THREE.InstancedMesh(
+      linkCapsuleGeometry,material,count
+    );
+    dots.castShadow=true;
+    dots.receiveShadow=true;
+    dots.frustumCulled=false;
+    dots.instanceMatrix.setUsage(
+      THREE.DynamicDrawUsage
+    );
+    scene.add(dots);
+
+    const arrow=mesh(
+      scene,linkArrowGeometry,material
+    );
+
+    curve.getPoint(1,arrow.position);
+    curve.getTangent(1,tempLinkTangent).normalize();
+    arrow.quaternion.setFromUnitVectors(
+      linkUpDirection,tempLinkTangent
+    );
+
+    const htmlLabel=document.createElement("div");
+    htmlLabel.className="lk";
+    htmlLabel.textContent=data.label;
+    linkLabelContainer.appendChild(htmlLabel);
+
+    return {
+      data,fromIsland,toIsland,
+      curve,dots,arrow,htmlLabel,
+      material,count
+    };
+  }
+
+  // 先定位所有島，再建立連線。
+  function setIslandPositions() {
+    mobile=isMobileLayout();
+
+    for(const island of islands) {
+      const pos=island.data.pos||[0,0];
+      island.root.position.x=
+        mobile?pos[0]*1.3:pos[0];
+      island.root.position.z=
+        mobile?pos[1]*0.8:pos[1];
+
+      island.rippleGroup.position.x=
+        island.root.position.x;
+      island.rippleGroup.position.z=
+        island.root.position.z;
+    }
+  }
+
+  setIslandPositions();
+
+  for(const data of ISLAND_DATA.links) {
+    const visual=createLinkVisual(data);
+    if(visual) linkVisuals.push(visual);
+  }
+
+  function rebuildLinkCurves() {
+    for(const visual of linkVisuals) {
+      const nextCurve=createLinkCurve(
+        visual.fromIsland,
+        visual.toIsland
+      );
+
+      const nextCount=Math.max(
+        6,Math.ceil(nextCurve.getLength()/0.62)
+      );
+      visual.curve=nextCurve;
+
+      if(nextCount!==visual.count) {
+        scene.remove(visual.dots);
+        visual.dots.dispose();
+
+        const dots=new THREE.InstancedMesh(
+          linkCapsuleGeometry,
+          visual.material,
+          nextCount
+        );
+        dots.castShadow=true;
+        dots.receiveShadow=true;
+        dots.frustumCulled=false;
+        dots.instanceMatrix.setUsage(
+          THREE.DynamicDrawUsage
+        );
+        scene.add(dots);
+
+        visual.dots=dots;
+        visual.count=nextCount;
+      }
+
+      nextCurve.getPoint(
+        1,visual.arrow.position
+      );
+      nextCurve.getTangent(
+        1,tempLinkTangent
+      ).normalize();
+
+      visual.arrow.quaternion.setFromUnitVectors(
+        linkUpDirection,tempLinkTangent
+      );
+    }
+  }
+
+  function animateLinks(time) {
+    for(const visual of linkVisuals) {
+      const {curve,dots,count}=visual;
+
+      for(let i=0;i<count;i++) {
+        const u=((i/count+time*0.035)%1)*0.95;
+        curve.getPoint(u,tempLinkPoint);
+        curve.getTangent(
+          u,tempLinkTangent
+        ).normalize();
+
+        linkDummy.position.copy(tempLinkPoint);
+        linkDummy.quaternion.setFromUnitVectors(
+          linkUpDirection,tempLinkTangent
+        );
+        linkDummy.scale.set(1,1,1);
+        linkDummy.updateMatrix();
+        dots.setMatrixAt(i,linkDummy.matrix);
+      }
+      dots.instanceMatrix.needsUpdate=true;
+    }
+  }
+
+  // ====================================================
+  // 五朵雲
+  // ====================================================
+
+  const clouds=[];
+  const cloudPositions=[
+    [-24,8.6,-16],
+    [-9,9.7,-21],
+    [8,8.2,20],
+    [22,9.4,-11],
+    [27,8.9,13]
+  ];
+
+  for(let i=0;i<5;i++) {
+    const cloud=new THREE.Group();
+    cloud.position.set(...cloudPositions[i]);
+    scene.add(cloud);
+
+    const cloudMaterial=standard("#ffffff",{
+      roughness:0.9,
+      transparent:true,
+      opacity:0.92,
+      depthWrite:false
+    });
+
+    const parts=[
+      [-0.95,0,0,1],
+      [0,0.25,0,1.5],
+      [1.15,0,0,1.1],
+      [0.4,-0.15,0.4,1.1]
+    ];
+
+    for(const [x,y,z,r] of parts) {
+      ball(cloud,r,cloudMaterial,x,y,z);
+    }
+
+    cloud.userData.speed=0.16+i*0.035;
+    clouds.push(cloud);
+  }
+
+  // ====================================================
+  // 選取光環
+  // ====================================================
+
+  const selectionRing=mesh(
+    scene,
+    new THREE.RingGeometry(3,3.25,64),
+    new THREE.MeshBasicMaterial({
+      color:"#ffffff",
+      transparent:true,
+      opacity:0,
+      depthWrite:false,
+      side:THREE.DoubleSide
+    })
+  );
+  selectionRing.rotation.x=-Math.PI/2;
+  selectionRing.visible=false;
+
+  let selectionRingOpacity=0;
+
+  // ====================================================
+  // 相機與 fit
+  // ====================================================
+
+  const fitTarget=new THREE.Vector3(0.3,0.3,0);
+  const desiredPosition=new THREE.Vector3();
+  const projectedPoint=new THREE.Vector3();
+  const projectTemp=new THREE.Vector3();
+  const offsetTemp=new THREE.Vector3();
+  const deltaTemp=new THREE.Vector3();
+  const fitDirection=new THREE.Vector3();
+
+  const savedPosition=new THREE.Vector3();
+  const savedTarget=new THREE.Vector3();
+
+  let fittedDistance=40;
+  let cameraTween=null;
+  let currentShiftX=0;
+  let currentShiftY=0;
+
+  function cameraDirection(azimuth,polar,out) {
+    return out.set(
+      Math.sin(polar)*Math.sin(azimuth),
+      Math.cos(polar),
+      Math.sin(polar)*Math.cos(azimuth)
+    );
+  }
+
+  function setCameraAt(distance,target,direction) {
+    camera.position.copy(target)
+      .addScaledVector(direction,distance);
+    camera.lookAt(target);
+    camera.updateMatrixWorld();
+  }
+
+  function projectWorldPoint(point) {
+    projectedPoint.copy(point).project(camera);
+    const width=window.innerWidth;
+    const height=window.innerHeight;
+    return {
+      x:(projectedPoint.x+1)*0.5*width,
+      y:(1-projectedPoint.y)*0.5*height,
+      depth:projectedPoint.z
+    };
+  }
+
+  function labelAnchor(island,includeFloat=true,out) {
+    const position=island.root.position;
+
+    if(mobile) {
+      return out.set(
+        position.x,
+        5.6+(includeFloat?position.y:0),
+        position.z
+      );
+    }
+
+    const z=island.data.pos[1];
+    let y=3.6;
+    let worldZ=position.z;
+
+    if(z<0) {
+      y=3.4;
+      worldZ-=0.8;
+    } else if(z>0) {
+      y=0.2;
+      worldZ+=3.1;
+    }
+
+    return out.set(
+      position.x,
+      y+(includeFloat?position.y:0),
+      worldZ
+    );
+  }
+
+  function getCardPlacement(island) {
+    if(mobile) return "center";
+    return island.data.pos[1]>0
+      ?"top":"bottom";
+  }
+
+  function anchoredRect(x,y,w,h,placement) {
+    let top=y-h/2;
+    if(placement==="bottom") top=y-h;
+    if(placement==="top") top=y;
+
+    return {
+      left:x-w/2,
+      right:x+w/2,
+      top,
+      bottom:top+h,
+      cx:x,
+      cy:top+h/2,
+      w,h
+    };
+  }
+
+  function getProjectedLabelRect(island) {
+    labelAnchor(island,false,projectTemp);
+    const p=projectWorldPoint(projectTemp);
+
+    const w=mobile
+      ?(island.label.offsetWidth||98)
+      :Math.max(180,island.label.offsetWidth||172);
+
+    const h=mobile
+      ?(island.label.offsetHeight||48)
+      :Math.max(112,island.label.offsetHeight||112);
+
+    return anchoredRect(
+      p.x,p.y,w,h,getCardPlacement(island)
+    );
+  }
+
+  function intersects(a,b,gap=4) {
+    return !(
+      a.right+gap<=b.left||
+      b.right+gap<=a.left||
+      a.bottom+gap<=b.top||
+      b.bottom+gap<=a.top
+    );
+  }
+
+  function getFitMargins() {
+    return mobile
+      ?{left:8,right:8,top:70,bottom:44}
+      :{left:8,right:8,top:20,bottom:50};
+  }
+
+  function projectionFits(distance,direction) {
+    setCameraAt(distance,fitTarget,direction);
+
+    const width=window.innerWidth;
+    const height=window.innerHeight;
+    const m=getFitMargins();
+
+    const minX=m.left;
+    const maxX=width-m.right;
+    const minY=m.top;
+    const maxY=height-m.bottom;
+
+    const labelRects=[];
+
+    for(const island of islands) {
+      const rect=getProjectedLabelRect(island);
+
+      if(
+        rect.left<minX||rect.right>maxX||
+        rect.top<minY||rect.bottom>maxY
+      ) return false;
+
+      labelRects.push(rect);
+
+      for(const [q,r] of island.tiles) {
+        const [dx,dz]=axialToXZ(q,r);
+
+        for(const y of [-0.05,TOP]) {
+          for(const sx of [-0.95,0.95]) {
+            for(const sz of [-0.95,0.95]) {
+              projectTemp.set(
+                island.root.position.x+dx+sx,
+                y,
+                island.root.position.z+dz+sz
+              );
+
+              const p=projectWorldPoint(projectTemp);
+
+              if(
+                p.depth<=-1||p.depth>=1||
+                p.x<minX||p.x>maxX||
+                p.y<minY||p.y>maxY
+              ) return false;
+            }
+          }
+        }
+      }
+    }
+
+    if(mobile) {
+      for(let i=0;i<labelRects.length;i++) {
+        for(let j=i+1;j<labelRects.length;j++) {
+          if(intersects(
+            labelRects[i],labelRects[j],3
+          )) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  function calculateFit() {
+    savedPosition.copy(camera.position);
+    savedTarget.copy(controls.target);
+
+    // fit 使用無視角偏移的透視投影。
+    camera.clearViewOffset();
+    camera.aspect=
+      window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+
+    const azimuth=mobile?Math.PI/2:0;
+    const polar=mobile?0.8:0.88;
+    cameraDirection(
+      azimuth,polar,fitDirection
+    );
+
+    if(mobile) {
+      let low=7;
+      let high=70;
+
+      if(projectionFits(high,fitDirection)) {
+        for(let i=0;i<32;i++) {
+          const mid=(low+high)/2;
+          if(projectionFits(mid,fitDirection)) {
+            high=mid;
+          } else {
+            low=mid;
+          }
+        }
+      }
+      fittedDistance=high;
+
+    } else {
+      fittedDistance=70;
+      for(let d=7;d<=70;d+=0.25) {
+        if(projectionFits(d,fitDirection)) {
+          fittedDistance=d;
+          break;
+        }
+      }
+    }
+
+    desiredPosition.copy(fitTarget)
+      .addScaledVector(
+        fitDirection,fittedDistance
+      );
+
+    const result={
+      position:desiredPosition.clone(),
+      target:fitTarget.clone()
+    };
+
+    // 恢復 fit 前相機狀態。
+    camera.position.copy(savedPosition);
+    controls.target.copy(savedTarget);
+    camera.lookAt(savedTarget);
+    applyViewOffset();
+    camera.updateMatrixWorld();
+
+    return result;
+  }
+
+  function easeInOutCubic(t) {
+    return t<0.5
+      ?4*t*t*t
+      :1-Math.pow(-2*t+2,3)/2;
+  }
+
+  function cancelCameraTween() {
+    if(!cameraTween) return;
+    cameraTween=null;
+    controls.enabled=true;
+  }
+
+  function startCameraTween(
+    toPosition,toTarget,
+    toShiftX,toShiftY,
+    duration=950
+  ) {
+    cameraTween={
+      start:performance.now(),
+      duration:reducedMotion?0:duration,
+      fromPosition:camera.position.clone(),
+      toPosition:toPosition.clone(),
+      fromTarget:controls.target.clone(),
+      toTarget:toTarget.clone(),
+      fromShiftX:currentShiftX,
+      fromShiftY:currentShiftY,
+      toShiftX,toShiftY
+    };
+    controls.enabled=false;
+  }
+
+  function applyViewOffset() {
+    const w=window.innerWidth;
+    const h=window.innerHeight;
+
+    if(
+      Math.abs(currentShiftX)<0.01&&
+      Math.abs(currentShiftY)<0.01
+    ) {
+      camera.clearViewOffset();
+    } else {
+      camera.setViewOffset(
+        w,h,
+        currentShiftX,currentShiftY,
+        w,h
+      );
+    }
+  }
+
+  function getPanelShift() {
+    const w=window.innerWidth;
+    const h=window.innerHeight;
+
+    if(mobile) {
+      const panel=$("info-panel");
+      const panelHeight=Math.min(
+        h*0.54,
+        panel.offsetHeight||h*0.54
+      );
+      return {
+        x:0,
+        y:Math.max(0,panelHeight/2-14)
+      };
+    }
+
+    return {
+      x:Math.min(380,w*0.92)/2,
+      y:0
+    };
+  }
+
+  // ====================================================
+  // 手機選取聚焦修正
+  //
+  // 只用於 mobile && select(id)。
+  // 桌機仍沿用原本的距離 21 及 getPanelShift()。
+  //
+  // 原因：
+  // 手機畫面高而窄，抽屜會遮住下半部。
+  // 僅靠固定距離與固定 viewOffset，
+  // 並不能確保整座島和最高的擺設一起入鏡。
+  //
+  // 解法：
+  // 1. 取得當前島嶼完整 3D 包圍盒。
+  // 2. 以可見畫面區域為目標。
+  // 3. 試算不同距離的實際投影寬高。
+  // 4. 讓島寬約為可見區域寬的 70%。
+  // 5. 再微調 shiftY，將島的投影中心置中。
+  // ====================================================
+
+  const mobileFocusBox=new THREE.Box3();
+  const mobileFocusCorner=new THREE.Vector3();
+  const mobileFocusDirection=new THREE.Vector3();
+  const mobileFocusPosition=new THREE.Vector3();
+  const mobileFocusTarget=new THREE.Vector3();
+
+  const mobileFocusRestorePosition=new THREE.Vector3();
+  const mobileFocusRestoreTarget=new THREE.Vector3();
+
+  function getMobileVisibleArea() {
+    const w=window.innerWidth;
+    const h=window.innerHeight;
+    const panel=$("info-panel");
+
+    // 使用實際抽屜高度，而不是動畫中的
+    // getBoundingClientRect().top。
+    const panelHeight=Math.min(
+      h*0.54,
+      panel.offsetHeight||h*0.54
+    );
+
+    // 保留上方及抽屜頂部的視覺緩衝。
+    const top=28;
+
+    const bottom=Math.max(
+      top+80,
+      h-28-panelHeight-10
+    );
+
+    return {
+      width:w,
+      height:h,
+      top,
+      bottom,
+      centerX:w/2,
+      centerY:(top+bottom)/2,
+      usableHeight:bottom-top
+    };
+  }
+
+  function measureMobileIslandProjection(box) {
+    let minX=Infinity;
+    let maxX=-Infinity;
+    let minY=Infinity;
+    let maxY=-Infinity;
+
+    const min=box.min;
+    const max=box.max;
+
+    // 八個包圍盒角落足以求得此視角的
+    // 透視投影大致邊界。
+    for(let ix=0;ix<2;ix++) {
+      for(let iy=0;iy<2;iy++) {
+        for(let iz=0;iz<2;iz++) {
+          mobileFocusCorner.set(
+            ix?max.x:min.x,
+            iy?max.y:min.y,
+            iz?max.z:min.z
+          );
+
+          const p=projectWorldPoint(
+            mobileFocusCorner
+          );
+
+          minX=Math.min(minX,p.x);
+          maxX=Math.max(maxX,p.x);
+          minY=Math.min(minY,p.y);
+          maxY=Math.max(maxY,p.y);
+        }
+      }
+    }
+
+    return {
+      minX,maxX,minY,maxY,
+      width:maxX-minX,
+      height:maxY-minY,
+      centerX:(minX+maxX)/2,
+      centerY:(minY+maxY)/2
+    };
+  }
+
+  function calculateMobileFocus(island,azimuth) {
+    const area=getMobileVisibleArea();
+
+    mobileFocusRestorePosition.copy(
+      camera.position
+    );
+
+    mobileFocusRestoreTarget.copy(
+      controls.target
+    );
+
+    // 抬高俯視角，保留手機原本的水平方向。
+    // 0.75 是與垂直方向的夾角，
+    // 比接近水平視角更容易完整看到六角島。
+    cameraDirection(
+      azimuth,
+      0.75,
+      mobileFocusDirection
+    );
+
+    mobileFocusTarget.set(
+      island.root.position.x,
+      1,
+      island.root.position.z
+    );
+
+    // Box3 只在選取時執行一次。
+    // 內容包含地磚、樹花與完整主題擺設。
+    island.root.updateWorldMatrix(true,true);
+
+    mobileFocusBox.setFromObject(
+      island.root,true
+    );
+
+    // 選取抬高時，額外保留一點上下安全量。
+    mobileFocusBox.min.y-=0.12;
+    mobileFocusBox.max.y+=0.32;
+
+    camera.clearViewOffset();
+    camera.updateProjectionMatrix();
+
+    // 先算無偏移投影的大小。
+    // 限制最高擺設不能超出抽屜上方可視範圍。
+    let chosenDistance=28;
+
+    const desiredWidth=area.width*0.70;
+    const maximumHeight=area.usableHeight*0.82;
+
+    for(let distance=8;distance<=70;distance+=0.25) {
+      mobileFocusPosition.copy(mobileFocusTarget)
+        .addScaledVector(
+          mobileFocusDirection,distance
+        );
+
+      camera.position.copy(mobileFocusPosition);
+      camera.lookAt(mobileFocusTarget);
+      camera.updateMatrixWorld();
+
+      const bounds=measureMobileIslandProjection(
+        mobileFocusBox
+      );
+
+      if(
+        bounds.width<=desiredWidth &&
+        bounds.height<=maximumHeight
+      ) {
+        chosenDistance=distance;
+        break;
+      }
+    }
+
+    mobileFocusPosition.copy(mobileFocusTarget)
+      .addScaledVector(
+        mobileFocusDirection,
+        chosenDistance
+      );
+
+    camera.position.copy(mobileFocusPosition);
+    camera.lookAt(mobileFocusTarget);
+    camera.updateMatrixWorld();
+
+    const finalBounds=measureMobileIslandProjection(
+      mobileFocusBox
+    );
+
+    // Three.js setViewOffset：
+    // 正的 offsetY 會把場景投影往上移動。
+    // 由實際包圍盒中心計算需要移動的像素。
+    //
+    // 注意：不使用舊的
+    // panelHeight / 2 - 14 固定估算。
+    const shiftY=
+      finalBounds.centerY-area.centerY;
+
+    // 手機保持水平中心。
+    const shiftX=
+      finalBounds.centerX-area.centerX;
+
+    // 恢復原本相機，真正的移動交給 950ms tween。
+    camera.position.copy(
+      mobileFocusRestorePosition
+    );
+
+    controls.target.copy(
+      mobileFocusRestoreTarget
+    );
+
+    camera.lookAt(controls.target);
+
+    applyViewOffset();
+    camera.updateMatrixWorld();
+
+    return {
+      position:mobileFocusPosition.clone(),
+      target:mobileFocusTarget.clone(),
+      shiftX,
+      shiftY
+    };
+  }
+
+  function updateCameraTween(now) {
+    if(!cameraTween) return;
+
+    const tween=cameraTween;
+    const t=tween.duration===0
+      ?1
+      :THREE.MathUtils.clamp(
+        (now-tween.start)/tween.duration,0,1
+      );
+
+    const e=easeInOutCubic(t);
+
+    controls.target.lerpVectors(
+      tween.fromTarget,tween.toTarget,e
+    );
+
+    camera.position.lerpVectors(
+      tween.fromPosition,tween.toPosition,e
+    );
+
+    currentShiftX=THREE.MathUtils.lerp(
+      tween.fromShiftX,tween.toShiftX,e
+    );
+    currentShiftY=THREE.MathUtils.lerp(
+      tween.fromShiftY,tween.toShiftY,e
+    );
+
+    camera.lookAt(controls.target);
+
+    if(t>=1) {
+      cameraTween=null;
+      controls.enabled=true;
+    }
+  }
+
+  function getCurrentAngles() {
+    offsetTemp.copy(camera.position)
+      .sub(controls.target);
+    const distance=Math.max(
+      offsetTemp.length(),0.001
+    );
+    return {
+      azimuth:Math.atan2(
+        offsetTemp.x,offsetTemp.z
+      ),
+      polar:Math.acos(
+        THREE.MathUtils.clamp(
+          offsetTemp.y/distance,-1,1
+        )
+      )
+    };
+  }
+
+  function setHash(id) {
+    const url=new URL(window.location.href);
+    url.hash=id
+      ?"#"+encodeURIComponent(id)
+      :"";
+
+    history.replaceState(
+      history.state,"",
+      url.pathname+url.search+url.hash
+    );
+  }
+
+  function syncSelectedClasses() {
+    document.body.classList.toggle(
+      "sel",selectedIslandId!==null
+    );
+
+    for(const island of islands) {
+      island.label.classList.toggle(
+        "selected",
+        island.data.id===selectedIslandId
+      );
+    }
+  }
+
+  function select(id,options={}) {
+    const island=islandById.get(id);
+    if(!island) return;
+
+    selectedIslandId=id;
+    hoveredIslandId=null;
+    hideHint();
+
+    syncSelectedClasses();
+    populatePanel(id);
+    $("info-panel").setAttribute(
+      "aria-hidden","false"
+    );
+
+    if(!options.skipHash) setHash(id);
+
+    controls.autoRotate=false;
+    updateRotationButton();
+
+    const angles=getCurrentAngles();
+
+    // 只修改手機選取聚焦；
+    // 桌機完整保留原本計算方式。
+    if(mobile) {
+      const focus=calculateMobileFocus(
+        island,
+        angles.azimuth
+      );
+
+      startCameraTween(
+        focus.position,
+        focus.target,
+        focus.shiftX,
+        focus.shiftY,
+        950
+      );
+
+      return;
+    }
+
+    const polar=THREE.MathUtils.clamp(
+      angles.polar,0.75,1.1
+    );
+
+    cameraDirection(
+      angles.azimuth,polar,fitDirection
+    );
+
+    const target=new THREE.Vector3(
+      island.root.position.x,
+      1,
+      island.root.position.z
+    );
+
+    const position=target.clone()
+      .addScaledVector(
+        fitDirection,21
+      );
+
+    const shift=getPanelShift();
+
+    startCameraTween(
+      position,target,
+      shift.x,shift.y,950
+    );
+  }
+
+  function closeSelection() {
+    if(selectedIslandId===null) {
+      resetView(true);
+      return;
+    }
+
+    selectedIslandId=null;
+    hoveredIslandId=null;
+    syncSelectedClasses();
+
+    $("info-panel").setAttribute(
+      "aria-hidden","true"
+    );
+    setHash(null);
+
+    controls.autoRotate=false;
+    updateRotationButton();
+
+    const fit=calculateFit();
+
+    startCameraTween(
+      fit.position,fit.target,0,0,950
+    );
+  }
+
+  function resetView(animated=true) {
+    if(selectedIslandId!==null) {
+      closeSelection();
+      return;
+    }
+
+    controls.autoRotate=false;
+    updateRotationButton();
+
+    const fit=calculateFit();
+
+    if(animated) {
+      startCameraTween(
+        fit.position,fit.target,0,0,950
+      );
+    } else {
+      cameraTween=null;
+      controls.enabled=true;
+      controls.target.copy(fit.target);
+      camera.position.copy(fit.position);
+      currentShiftX=0;
+      currentShiftY=0;
+      camera.clearViewOffset();
+      controls.update();
+    }
+  }
+
+  function clampTarget() {
+    deltaTemp.copy(controls.target);
+
+    controls.target.x=THREE.MathUtils.clamp(
+      controls.target.x,-16,16
+    );
+    controls.target.z=THREE.MathUtils.clamp(
+      controls.target.z,-12,12
+    );
+    controls.target.y=THREE.MathUtils.clamp(
+      controls.target.y,-1,9
+    );
+
+    deltaTemp.copy(controls.target)
+      .sub(deltaTemp);
+
+    if(deltaTemp.lengthSq()>0) {
+      camera.position.add(deltaTemp);
+    }
+  }
+
+  // ====================================================
+  // 名牌投影與避讓
+  // ====================================================
+
+  function getProtectedRects() {
+    const rects=[];
+    if(!mobile) return rects;
+
+    const header=$(".header-card");
+    const toolbar=$(".toolbar");
+    const footer=$(".footer");
+
+    for(const element of [header,toolbar,footer]) {
+      if(!element) continue;
+
+      if(element===header && selectedIslandId!==null) {
+        continue;
+      }
+
+      const r=element.getBoundingClientRect();
+      rects.push({
+        left:r.left,
+        right:r.right,
+        top:r.top,
+        bottom:r.bottom
+      });
+    }
+    return rects;
+  }
+
+  function resolveLabelLayout(entries) {
+    const width=window.innerWidth;
+    const height=window.innerHeight;
+
+    const leftLimit=8;
+    const rightLimit=width-8;
+    const topLimit=mobile?70:8;
+    const bottomLimit=height-(mobile?44:46);
+
+    entries.sort((a,b)=>b.depth-a.depth);
+
+    for(const entry of entries) {
+      entry.x=THREE.MathUtils.clamp(
+        entry.x,
+        leftLimit+entry.w/2,
+        rightLimit-entry.w/2
+      );
+      entry.y=THREE.MathUtils.clamp(
+        entry.y,
+        topLimit+entry.h/2,
+        bottomLimit-entry.h/2
+      );
+    }
+
+    for(let iteration=0;iteration<28;iteration++) {
+      let anyCollision=false;
+
+      for(let i=0;i<entries.length;i++) {
+        for(let j=i+1;j<entries.length;j++) {
+          const a=entries[i];
+          const b=entries[j];
+          const overlapX=
+            (a.w+b.w)/2+4-Math.abs(a.x-b.x);
+          const overlapY=
+            (a.h+b.h)/2+4-Math.abs(a.y-b.y);
+
+          if(overlapX<=0||overlapY<=0) continue;
+          anyCollision=true;
+
+          if(overlapX<overlapY) {
+            const sign=a.x<=b.x?-1:1;
+            const shift=overlapX/2+0.3;
+            a.x+=sign*shift;
+            b.x-=sign*shift;
+          } else {
+            const sign=a.y<=b.y?-1:1;
+            const shift=overlapY/2+0.3;
+            a.y+=sign*shift;
+            b.y-=sign*shift;
+          }
+
+          for(const e of [a,b]) {
+            e.x=THREE.MathUtils.clamp(
+              e.x,
+              leftLimit+e.w/2,
+              rightLimit-e.w/2
+            );
+            e.y=THREE.MathUtils.clamp(
+              e.y,
+              topLimit+e.h/2,
+              bottomLimit-e.h/2
+            );
+          }
+        }
+      }
+      if(!anyCollision) break;
+    }
+
+    const accepted=[];
+    const protectedRects=getProtectedRects();
+
+    entries.sort((a,b)=>a.depth-b.depth);
+
+    for(const entry of entries) {
+      const rect={
+        left:entry.x-entry.w/2,
+        right:entry.x+entry.w/2,
+        top:entry.y-entry.h/2,
+        bottom:entry.y+entry.h/2
+      };
+
+      const blocked=accepted.some(
+        previous=>intersects(
+          rect,previous,2
+        )
+      )||protectedRects.some(
+        protectedRect=>intersects(
+          rect,protectedRect,2
+        )
+      );
+
+      entry.visible=!blocked;
+      if(!blocked) accepted.push(rect);
+    }
+
+    return entries;
+  }
+
+  function updateLabels() {
+    const entries=[];
+
+    for(const island of islands) {
+      labelAnchor(
+        island,true,projectTemp
+      );
+      const p=projectWorldPoint(projectTemp);
+      const label=island.label;
+
+      if(p.depth>=1||p.depth<=-1) {
+        label.style.visibility="hidden";
+        continue;
+      }
+
+      const w=label.offsetWidth;
+      const h=label.offsetHeight;
+      const placement=getCardPlacement(island);
+
+      let centerY=p.y;
+      if(placement==="bottom") centerY=p.y-h/2;
+      else if(placement==="top") centerY=p.y+h/2;
+
+      entries.push({
+        island,label,
+        x:p.x,y:centerY,
+        depth:p.depth,
+        w,h,visible:true
+      });
+    }
+
+    resolveLabelLayout(entries);
+
+    for(const entry of entries) {
+      const label=entry.label;
+      label.style.visibility=
+        entry.visible?"visible":"hidden";
+      label.style.transform=
+        `translate3d(${entry.x-entry.w/2}px,`+
+        `${entry.y-entry.h/2}px,0)`;
+      label.style.zIndex=String(
+        Math.round(1000-entry.depth*100)
+      );
+    }
+  }
+
+  function updateLinkLabels() {
+    const width=window.innerWidth;
+    const height=window.innerHeight;
+
+    for(const visual of linkVisuals) {
+      visual.curve.getPoint(0.5,tempLinkPoint);
+      const p=projectWorldPoint(tempLinkPoint);
+      const label=visual.htmlLabel;
+
+      if(p.depth<=-1||p.depth>=1) {
+        label.style.visibility="hidden";
+        continue;
+      }
+
+      label.style.visibility="visible";
+
+      const w=label.offsetWidth;
+      const h=label.offsetHeight;
+
+      const x=THREE.MathUtils.clamp(
+        p.x,8+w/2,width-8-w/2
+      );
+      const y=THREE.MathUtils.clamp(
+        p.y,8+h/2,height-8-h/2
+      );
+
+      label.style.transform=
+        `translate3d(${x-w/2}px,`+
+        `${y-h/2}px,0)`;
+
+      const related=
+        selectedIslandId!==null&&
+        (
+          visual.data.from===selectedIslandId||
+          visual.data.to===selectedIslandId
+        );
+
+      label.classList.toggle(
+        "related",mobile&&related
+      );
+    }
+  }
+
+  // ====================================================
+  // 資料同步與面板
+  // ====================================================
+
+  function syncIslandDisplay(id) {
+    const island=islandById.get(id);
+    const draft=draftData.get(id);
+    if(!island||!draft) return;
+
+    island.percent.textContent=draft.progress+"%";
+    island.fill.style.width=draft.progress+"%";
+    island.label.setAttribute(
+      "aria-label",
+      island.data.name+" "+draft.progress+"%"
+    );
+
+    draft.items.slice(0,3).forEach((item,i)=>{
+      const element=island.itemValueElements[i];
+      if(element) element.textContent=item.value;
+    });
+
+    if(selectedIslandId===id) {
+      $("panel-progress-number").textContent=
+        draft.progress+"%";
+      $("panel-progress-fill").style.width=
+        draft.progress+"%";
+      $("progress-slider").value=
+        String(draft.progress);
+    }
+  }
+
+  function populatePanel(id) {
+    const island=islandById.get(id);
+    const draft=draftData.get(id);
+    if(!island||!draft) return;
+
+    const data=island.data;
+    const panel=$("info-panel");
+
+    panel.style.setProperty(
+      "--panel-color",data.color
+    );
+    $("panel-icon").textContent=data.emoji;
+    $("panel-title").textContent=data.name;
+    $("panel-subtitle").textContent=data.sub;
+    $("panel-tip").textContent=data.tip;
+    $("panel-progress-number").textContent=
+      draft.progress+"%";
+    $("panel-progress-fill").style.width=
+      draft.progress+"%";
+    $("progress-slider").value=
+      String(draft.progress);
+
+    const itemsRoot=$("panel-items");
+
+    itemsRoot.innerHTML=draft.items.map(
+      (item,index)=>`
+        <div class="panel-item">
+          <div class="panel-item-text">
+            <div class="panel-item-label">
+              ${esc(item.label)}
+            </div>
+            <div class="panel-item-note">
+              ${esc(item.note)}
+            </div>
+          </div>
+          <span
+            class="panel-item-value"
+            contenteditable="true"
+            spellcheck="false"
+            role="textbox"
+            aria-label="${esc(item.label)}"
+            data-index="${index}"
+          >${esc(item.value)}</span>
+        </div>
+      `
+    ).join("");
+
+    itemsRoot.querySelectorAll(
+      ".panel-item-value"
+    ).forEach(element=>{
+      element.addEventListener("input",()=>{
+        const index=Number(element.dataset.index);
+        if(!Number.isInteger(index)||
+           !draft.items[index]) return;
+
+        draft.items[index].value=
+          element.textContent;
+        syncIslandDisplay(id);
+      });
+
+      element.addEventListener("keydown",event=>{
+        if(event.key==="Enter") {
+          event.preventDefault();
+          element.blur();
+        }
+      });
+
+      element.addEventListener("paste",event=>{
+        event.preventDefault();
+        const pasted=event.clipboardData
+          ?.getData("text/plain")||"";
+
+        const selection=window.getSelection();
+        if(!selection||!selection.rangeCount) return;
+
+        const range=selection.getRangeAt(0);
+        range.deleteContents();
+
+        const node=document.createTextNode(
+          pasted.replace(/[\r\n]+/g," ")
+        );
+
+        range.insertNode(node);
+        range.setStartAfter(node);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
+        element.dispatchEvent(
+          new Event("input",{bubbles:true})
+        );
+      });
+    });
+
+    const relations=ISLAND_DATA.links
+      .filter(link=>
+        link.from===id||link.to===id
+      )
+      .map(link=>{
+        const outgoing=link.from===id;
+        const otherId=outgoing
+          ?link.to:link.from;
+        const other=islandById.get(otherId);
+        if(!other) return "";
+
+        return `
+          <button type="button"
+            class="relation-button"
+            data-target="${esc(otherId)}">
+            <span class="relation-arrow">
+              ${outgoing?"→":"←"}
+            </span>
+            <span class="relation-name">
+              ${esc(other.data.emoji)}
+              ${esc(other.data.name)}
+            </span>
+            <span class="relation-caption">
+              ${esc(link.label)}
+            </span>
+          </button>
+        `;
+      }).join("");
+
+    const relationsRoot=$("panel-relations");
+    relationsRoot.innerHTML=relations;
+
+    relationsRoot.querySelectorAll(
+      ".relation-button"
+    ).forEach(button=>{
+      button.addEventListener("click",()=>{
+        select(button.dataset.target);
+      });
+    });
+  }
+
+  $("progress-slider").addEventListener(
+    "input",event=>{
+      if(selectedIslandId===null) return;
+      const draft=draftData.get(selectedIslandId);
+      if(!draft) return;
+
+      draft.progress=THREE.MathUtils.clamp(
+        Number(event.target.value)||0,0,100
+      );
+      syncIslandDisplay(selectedIslandId);
+    }
+  );
+
+  $("panel-close").addEventListener(
+    "click",closeSelection
+  );
+
+  window.addEventListener("keydown",event=>{
+    if(event.key==="Escape" &&
+       selectedIslandId!==null) {
+      closeSelection();
+    }
+  });
+
+  function updateRotationButton() {
+    const button=$("rotate-button");
+    button.classList.toggle(
+      "active",controls.autoRotate
+    );
+    button.setAttribute(
+      "aria-pressed",
+      String(controls.autoRotate)
+    );
+  }
+
+  $("rotate-button").addEventListener(
+    "click",()=>{
+      cancelCameraTween();
+      controls.autoRotate=
+        !controls.autoRotate&&!reducedMotion;
+      updateRotationButton();
+      hideHint();
+    }
+  );
+
+  $("reset-button").addEventListener(
+    "click",()=>{
+      hideHint();
+      if(selectedIslandId!==null) {
+        closeSelection();
+      } else {
+        resetView(true);
+      }
+    }
+  );
+
+  let hintDismissed=false;
+
+  function hideHint() {
+    if(hintDismissed) return;
+    hintDismissed=true;
+    $("hint").classList.add("hidden");
+  }
+
+  // ====================================================
+  // Raycaster、滑鼠、單指與雙指
+  // ====================================================
+
+  const raycaster=new THREE.Raycaster();
+  const pointer=new THREE.Vector2();
+
+  const activePointers=new Map();
+  let gestureInvalid=false;
+
+  function raycastIsland(clientX,clientY) {
+    const rect=canvas.getBoundingClientRect();
+
+    pointer.set(
+      ((clientX-rect.left)/rect.width)*2-1,
+      -((clientY-rect.top)/rect.height)*2+1
+    );
+
+    raycaster.setFromCamera(pointer,camera);
+
+    const hits=raycaster.intersectObjects(
+      islands.map(island=>island.root),
+      true
+    );
+
+    for(const hit of hits) {
+      let object=hit.object;
+
+      while(object) {
+        if(object.userData?.islandId &&
+           islandById.has(object.userData.islandId)) {
+          return object.userData.islandId;
+        }
+        object=object.parent;
+      }
+    }
+
+    return null;
+  }
+
+  canvas.addEventListener("pointerdown",event=>{
+    if(activePointers.size===0) {
+      gestureInvalid=false;
+    } else {
+      gestureInvalid=true;
+    }
+
+    activePointers.set(event.pointerId,{
+      x:event.clientX,
+      y:event.clientY,
+      time:performance.now(),
+      moved:false
+    });
+
+    hideHint();
+    cancelCameraTween();
+  });
+
+  canvas.addEventListener("pointermove",event=>{
+    const down=activePointers.get(event.pointerId);
+
+    if(down) {
+      const distance=Math.hypot(
+        event.clientX-down.x,
+        event.clientY-down.y
+      );
+
+      if(distance>6) {
+        down.moved=true;
+        gestureInvalid=true;
+      }
+    }
+
+    if(
+      event.pointerType==="mouse" &&
+      event.buttons===0
+    ) {
+      hoveredIslandId=raycastIsland(
+        event.clientX,event.clientY
+      );
+      canvas.style.cursor=hoveredIslandId
+        ?"pointer":"grab";
+    }
+  });
+
+  canvas.addEventListener("pointerleave",()=>{
+    hoveredIslandId=null;
+    canvas.style.cursor="grab";
+  });
+
+  canvas.addEventListener("pointercancel",event=>{
+    activePointers.delete(event.pointerId);
+    gestureInvalid=true;
+  });
+
+  canvas.addEventListener("lostpointercapture",event=>{
+    activePointers.delete(event.pointerId);
+  });
+
+  canvas.addEventListener("pointerup",event=>{
+    const down=activePointers.get(event.pointerId);
+    if(!down) return;
+
+    const distance=Math.hypot(
+      event.clientX-down.x,
+      event.clientY-down.y
+    );
+    const duration=performance.now()-down.time;
+
+    const isClick=
+      !gestureInvalid &&
+      !down.moved &&
+      activePointers.size===1 &&
+      distance<=6 &&
+      duration<=600;
+
+    activePointers.delete(event.pointerId);
+
+    if(!isClick) return;
+
+    const id=raycastIsland(
+      event.clientX,event.clientY
+    );
+
+    if(id) {
+      select(id);
+    } else if(selectedIslandId!==null) {
+      closeSelection();
+    }
+  });
+
+  canvas.addEventListener(
+    "wheel",hideHint,{passive:true}
+  );
+
+  // ====================================================
+  // 視窗變化及方向切換
+  // ====================================================
+
+  function resizeRenderer() {
+    const w=Math.max(1,window.innerWidth);
+    const h=Math.max(1,window.innerHeight);
+
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio||1,2)
+    );
+    renderer.setSize(w,h,false);
+    camera.aspect=w/h;
+    camera.updateProjectionMatrix();
+  }
+
+  function refreshLayout(initial=false) {
+    const previousSelection=selectedIslandId;
+    const previousMobile=mobile;
+
+    cancelCameraTween();
+    resizeRenderer();
+    setIslandPositions();
+
+    if(previousMobile!==mobile) {
+      // 方向或斷點切換時完整重建連線與相機排列。
+      rebuildLinkCurves();
+
+      sunlight.shadow.mapSize.set(
+        mobile?1024:2048,
+        mobile?1024:2048
+      );
+
+      if(sunlight.shadow.map) {
+        sunlight.shadow.map.dispose();
+        sunlight.shadow.map=null;
+      }
+    }
+
+    const fit=calculateFit();
+
+    currentShiftX=0;
+    currentShiftY=0;
+    camera.clearViewOffset();
+
+    controls.target.copy(fit.target);
+
+    if(initial) {
+      if(reducedMotion) {
+        camera.position.copy(fit.position);
+        camera.lookAt(fit.target);
+        controls.update();
+      } else {
+        cameraDirection(
+          mobile?Math.PI/2:0,
+          mobile?0.8:0.88,
+          fitDirection
+        );
+
+        camera.position.copy(fit.target)
+          .addScaledVector(
+            fitDirection,
+            Math.min(70,fittedDistance*1.5)
+          );
+        camera.position.y+=6;
+        camera.lookAt(fit.target);
+
+        startCameraTween(
+          fit.position,fit.target,0,0,1600
+        );
+      }
+    } else {
+      camera.position.copy(fit.position);
+      camera.lookAt(fit.target);
+      controls.update();
+    }
+
+    if(previousSelection!==null &&
+       islandById.has(previousSelection)) {
+      select(previousSelection,{skipHash:true});
+    }
+
+    applyViewOffset();
+    updateLabels();
+    updateLinkLabels();
+  }
+
+  let resizeFrame=0;
+
+  window.addEventListener("resize",()=>{
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame=requestAnimationFrame(()=>{
+      refreshLayout(false);
+    });
+  });
+
+  // ====================================================
+  // 島嶼浮動、hover、選取光環
+  // ====================================================
+
+  function animateIslandSelection(time,delta) {
+    const speed=Math.min(1,delta*9);
+
+    for(const island of islands) {
+      let lift=0;
+
+      if(island.data.id===selectedIslandId) {
+        lift=0.28;
+      } else if(island.data.id===hoveredIslandId) {
+        lift=0.14;
+      }
+
+      const floating=reducedMotion
+        ?0
+        :Math.sin(
+          time*TAU/8+island.phase
+        )*0.04;
+
+      island.root.position.y=THREE.MathUtils.lerp(
+        island.root.position.y,
+        lift+floating,speed
+      );
+    }
+
+    const selected=selectedIslandId
+      ?islandById.get(selectedIslandId)
+      :null;
+
+    const targetOpacity=selected?0.85:0;
+
+    selectionRingOpacity=THREE.MathUtils.lerp(
+      selectionRingOpacity,
+      targetOpacity,speed
+    );
+
+    if(selected) {
+      selectionRing.visible=true;
+      selectionRing.position.set(
+        selected.root.position.x,
+        0.085,
+        selected.root.position.z
+      );
+    }
+
+    selectionRing.material.opacity=
+      selectionRingOpacity;
+
+    const scale=1+(
+      reducedMotion?0:Math.sin(time*2)*0.015
+    );
+    selectionRing.scale.set(
+      scale,scale,scale
+    );
+
+    if(!selected && selectionRingOpacity<0.01) {
+      selectionRing.visible=false;
+    }
+  }
+
+  // ====================================================
+  // 單一 requestAnimationFrame
+  // ====================================================
+
+  const clock=new THREE.Clock();
+  let elapsed=0;
+
+  function animate() {
+    requestAnimationFrame(animate);
+
+    const delta=Math.min(clock.getDelta(),0.05);
+    elapsed+=delta;
+    const time=elapsed;
+
+    if(!reducedMotion) animateSea(time);
+
+    animateIslandSelection(time,delta);
+
+    for(const ripple of ripples) {
+      const t=(
+        time/5.8+
+        ripple.phase+
+        ripple.offset
+      )%1;
+
+      const scale=1+t*0.35;
+      ripple.mesh.scale.set(
+        scale,scale,scale
+      );
+      ripple.mesh.material.opacity=
+        reducedMotion?0.3:0.55*(1-t);
+    }
+
+    animateLinks(reducedMotion?0:time);
+
+    if(!reducedMotion) {
+      for(const cloud of clouds) {
+        cloud.position.x+=
+          cloud.userData.speed*delta;
+        if(cloud.position.x>35) {
+          cloud.position.x=-35;
+        }
+      }
+    }
+
+    for(let i=0;i<animatedFlags.length;i++) {
+      animatedFlags[i].rotation.y=
+        reducedMotion?0:
+        Math.sin(time*1.2+i)*0.12;
+    }
+
+    for(const star of animatedStars) {
+      if(!reducedMotion) {
+        star.rotation.y+=delta*0.65;
+      }
+    }
+
+    if(!cameraTween) {
+      if(reducedMotion) controls.autoRotate=false;
+      controls.update();
+      clampTarget();
+    }
+
+    updateCameraTween(performance.now());
+    applyViewOffset();
+    camera.updateMatrixWorld();
+
+    updateLabels();
+    updateLinkLabels();
+
+    renderer.render(scene,camera);
+  }
+
+  // ====================================================
+  // 啟動及 hash
+  // ====================================================
+
+  refreshLayout(true);
+
+  function selectFromHash() {
+    let id="";
+    try {
+      id=decodeURIComponent(
+        window.location.hash.slice(1)
+      );
+    } catch(error) {
+      return;
+    }
+
+    if(islandById.has(id)) {
+      select(id,{skipHash:true});
+    } else if(selectedIslandId!==null) {
+      closeSelection();
+    }
+  }
+
+  selectFromHash();
+
+  window.addEventListener(
+    "hashchange",selectFromHash
+  );
+
+  animate();
+}
+</script>
+</body>
+</html>
