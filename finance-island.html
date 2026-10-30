@@ -214,8 +214,9 @@ body.sel .hint {
 }
 
 body.sel .island-label:not(.selected) {
-  opacity:.55;
+  opacity:.15;
 }
+#music-button { border-radius:50%; width:40px; height:40px; padding:0; font-size:18px; }
 
 .label-top {
   display:flex;
@@ -674,7 +675,7 @@ body.sel .info-panel {
     left:8px;
     padding:7px 10px;
     border-radius:16px;
-    max-width:calc(100vw - 110px);
+    max-width:calc(100vw - 152px);
   }
 
   .header-card h1 { font-size:18px; }
@@ -781,9 +782,11 @@ body.sel .info-panel {
   }
 
   body.sel .island-label {
-    opacity:0;
+    opacity:.15;
     pointer-events:none;
   }
+  body.sel .island-label.selected { opacity:0; }
+  #music-button { width:38px; height:38px; }
 
   .info-panel {
     top:auto;
@@ -850,6 +853,12 @@ body.sel .info-panel {
       title="自動旋轉">
       🔄 <span class="button-text">自動旋轉</span>
     </button>
+    <button id="music-button"
+      class="tool-button"
+      type="button"
+      aria-label="背景音樂"
+      aria-pressed="false"
+      title="背景音樂">🔇</button>
   </div>
 
   <div id="hint" class="hint">
@@ -902,7 +911,7 @@ body.sel .info-panel {
         aria-label="試玩目前進度">
 
       <div class="slider-help">
-        ↑ 拖拉滑桿可試玩；重新整理會回到 ISLAND_DATA 的數字
+        ↑ 拖拉滑桿可試玩；修改會自動儲存在本機瀏覽器
       </div>
     </section>
 
@@ -2003,6 +2012,114 @@ function startWorld() {
   const islands=[];
   const islandById=new Map();
   const draftData=new Map();
+  const DRAFT_KEY="finance-island:drafts:v1";
+  let draftsRestored=false;
+  function saveDrafts() {
+    if(!draftsRestored) return;
+    try {
+      const out={};
+      for(const [id,d] of draftData) out[id]={progress:d.progress,items:d.items.map(i=>({value:i.value}))};
+      localStorage.setItem(DRAFT_KEY,JSON.stringify(out));
+    } catch(e) {}
+  }
+  function restoreDrafts() {
+    let saved=null;
+    try { saved=JSON.parse(localStorage.getItem(DRAFT_KEY)||"null"); } catch(e) {}
+    if(saved&&typeof saved==="object") {
+      for(const [id,d] of draftData) {
+        const sv=saved[id]; if(!sv) continue;
+        if(Number.isFinite(sv.progress)) d.progress=Math.max(0,Math.min(100,Math.round(sv.progress)));
+        if(Array.isArray(sv.items)) sv.items.forEach((it,i)=>{
+          if(d.items[i]&&it&&typeof it.value==="string") d.items[i].value=it.value;
+        });
+      }
+    }
+    draftsRestored=true;
+    for(const id of draftData.keys()) syncIslandDisplay(id);
+  }
+  window.addEventListener("pagehide",()=>saveDrafts());
+
+  // ---------- 背景音樂（WebAudio 程序化生成，無外部檔案） ----------
+  const MUSIC_KEY="finance-island:music";
+  let musicCtx=null,musicGain=null,musicSrc=null,musicOn=false;
+  function renderMusicLoop(sampleRate) {
+    const bpm=116,beat=60/bpm,bars=8,len=bars*4*beat;
+    const off=new OfflineAudioContext(2,Math.ceil(len*sampleRate),sampleRate);
+    const master=off.createGain();master.gain.value=1;master.connect(off.destination);
+    const f=m=>440*Math.pow(2,(m-69)/12);
+    // C G Am F | C F G C
+    const prog=[[60,64,67],[55,59,62],[57,60,64],[53,57,60],[60,64,67],[53,57,60],[55,59,62],[60,64,67]];
+    const note=(t,m,dur,type,vol,pan,harm)=>{
+      const o=off.createOscillator(),g=off.createGain(),p=off.createStereoPanner();
+      o.type=type;o.frequency.value=f(m);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+0.008);
+      g.gain.exponentialRampToValueAtTime(0.0008,t+dur);
+      p.pan.value=pan;o.connect(g).connect(p).connect(master);o.start(t);o.stop(t+dur+0.02);
+      if(harm){const o2=off.createOscillator(),g2=off.createGain();o2.type="sine";o2.frequency.value=f(m)*4;
+        g2.gain.setValueAtTime(vol*0.25,t);g2.gain.exponentialRampToValueAtTime(0.0005,t+0.12);
+        o2.connect(g2).connect(p);o2.start(t);o2.stop(t+0.15);}
+    };
+    // 旋律（C 大調五聲音階的馬林巴）
+    const mel=[72,76,79,76,74,72,74,79, 71,74,79,74,72,71,67,71, 72,76,81,76,72,69,72,76, 69,72,77,72,69,65,69,72,
+               72,76,79,84,79,76,74,72, 77,81,84,81,77,72,69,72, 74,79,83,79,74,71,74,79, 76,72,67,72,76,79,84,0];
+    prog.forEach((ch,bar)=>{
+      const t0=bar*4*beat;
+      note(t0,ch[0]-24,beat*1.6,"sine",0.32,0,false);
+      note(t0+2*beat,ch[0]-24+7,beat*1.4,"sine",0.24,0,false);
+      // 烏克麗麗刷弦：下下上 上下上
+      [0,1,1.5,2.5,3,3.5].forEach((b,k)=>{
+        ch.forEach((m,i)=>note(t0+b*beat+i*0.012*(k%2?-1:1)+0.03,m,beat*0.9,"triangle",k===0?0.09:0.06,-0.35,false));
+      });
+      for(let i=0;i<8;i++){const m=mel[bar*8+i];if(m)note(t0+i*beat/2,m,beat*1.1,"sine",0.16,0.3,true);}
+    });
+    return off.startRendering();
+  }
+  async function startMusic() {
+    try {
+      const AC=window.AudioContext||window.webkitAudioContext;
+      if(!AC) return;
+      if(!musicCtx) {
+        musicCtx=new AC();
+        musicGain=musicCtx.createGain();musicGain.gain.value=0;
+        musicGain.connect(musicCtx.destination);
+      }
+      if(musicCtx.state!=="running") await musicCtx.resume();
+      if(!musicSrc) {
+        const buf=await renderMusicLoop(musicCtx.sampleRate);
+        if(musicSrc) return;
+        musicSrc=musicCtx.createBufferSource();
+        musicSrc.buffer=buf;musicSrc.loop=true;
+        musicSrc.connect(musicGain);musicSrc.start();
+      }
+      musicGain.gain.cancelScheduledValues(musicCtx.currentTime);
+      musicGain.gain.setTargetAtTime(musicOn?0.25:0,musicCtx.currentTime,0.3);
+    } catch(e) { console.warn("music",e); }
+  }
+  function updateMusicButton() {
+    const b=$("music-button");
+    b.textContent=musicOn?"🎵":"🔇";
+    b.setAttribute("aria-pressed",musicOn?"true":"false");
+  }
+  function setupMusic() {
+    let pref=null;
+    try { pref=localStorage.getItem(MUSIC_KEY); } catch(e) {}
+    musicOn=pref!=="off";
+    updateMusicButton();
+    $("music-button").addEventListener("click",event=>{
+      event.stopPropagation();
+      musicOn=!musicOn;
+      try { localStorage.setItem(MUSIC_KEY,musicOn?"on":"off"); } catch(e) {}
+      updateMusicButton();
+      if(musicOn||musicCtx) startMusic();
+    });
+    const first=()=>{
+      for(const ev of ["pointerdown","pointerup","touchend","keydown"]) window.removeEventListener(ev,first,true);
+      if(musicOn) startMusic();
+    };
+    for(const ev of ["pointerup","touchend","keydown"]) window.addEventListener(ev,first,true);
+    window.__music=()=>({on:musicOn,state:musicCtx?musicCtx.state:null,gain:musicGain?musicGain.gain.value:null,playing:!!musicSrc});
+  }
+
   const labelContainer=$("labels");
 
   let selectedIslandId=null;
@@ -2106,7 +2223,7 @@ function startWorld() {
     label.addEventListener("click",event=>{
       event.stopPropagation();
       hideHint();
-      select(data.id);
+      avatarWalkTo(data.id);
     });
     labelContainer.appendChild(label);
 
@@ -3400,6 +3517,7 @@ function startWorld() {
   // ====================================================
 
   function syncIslandDisplay(id) {
+    saveDrafts();
     const island=islandById.get(id);
     const draft=draftData.get(id);
     if(!island||!draft) return;
@@ -3556,7 +3674,7 @@ function startWorld() {
       ".relation-button"
     ).forEach(button=>{
       button.addEventListener("click",()=>{
-        select(button.dataset.target);
+        avatarWalkTo(button.dataset.target);
       });
     });
   }
@@ -4133,7 +4251,9 @@ function startWorld() {
     walkPhase:0,
     moving:false,
     keyIsland:null,
-    hop:0
+    hop:0,
+    idle:null,
+    idleHoldUntil:0
   };
 
   const startIsland=islandById.get("income")||islands[0];
@@ -4153,7 +4273,7 @@ function startWorld() {
     if(!island) return;
     const to=standPoint(island);
     const len=Math.hypot(to.x-av.pos.x,to.z-av.pos.z);
-    if(reducedMotion||len<0.15) {
+    if(len<0.15) {
       av.pos.copy(to);
       av.homeIsland=island;
       av.homeOffset.subVectors(to,island.root.position).setY(0);
@@ -4163,6 +4283,7 @@ function startWorld() {
     }
     av.path={from:av.pos.clone(),to,len,t:0,start:performance.now(),targetId:id};
     av.homeIsland=null;
+    av.idle=null;
   }
 
   const keysDown=new Set();
@@ -4222,7 +4343,7 @@ function startWorld() {
       }
     } else if(av.path) {
       const p=av.path;
-      const dur=THREE.MathUtils.clamp(p.len/4.5,0.6,3.2);
+      const dur=THREE.MathUtils.clamp(p.len/6,0.8,1.5);
       p.t=Math.min(1,(performance.now()-p.start)/1000/dur);
       const e=p.t<0.5?2*p.t*p.t:1-Math.pow(-2*p.t+2,2)/2; // easeInOut
       // 終點跟著島（版面可能變動）
@@ -4236,12 +4357,50 @@ function startWorld() {
         av.homeIsland=isl;
         av.homeOffset.subVectors(av.pos,isl.root.position).setY(0);
         faceCamera();
+        av.idle=null;
         select(p.targetId);
       }
     } else if(av.homeIsland) {
-      av.pos.x=av.homeIsland.root.position.x+av.homeOffset.x;
-      av.pos.z=av.homeIsland.root.position.z+av.homeOffset.z;
-      faceCamera();
+      const hp=av.homeIsland.root.position;
+      const id=av.idle||(av.idle={mode:"wait",until:time+1.5+Math.random()*2,target:null,action:null,t0:0});
+      if(time<av.idleHoldUntil) {
+        id.mode="wait"; id.until=Math.max(id.until,av.idleHoldUntil);
+      } else if(id.mode==="walk") {
+        const tx=id.target.x-av.homeOffset.x,tz=id.target.z-av.homeOffset.z;
+        const d=Math.hypot(tx,tz);
+        const step=0.55*delta;
+        if(d<=step||time>id.until) {
+          if(d<=step) av.homeOffset.set(id.target.x,0,id.target.z);
+          id.mode="wait";id.until=time+2+Math.random()*3;
+          const r=Math.random();
+          id.action=r<0.3?"wave":r<0.6?"look":r<0.8?"jump":null;id.t0=time;
+          faceCamera();
+        } else {
+          const nx=av.homeOffset.x+tx/d*step,nz=av.homeOffset.z+tz/d*step;
+          const sf=surfaceAt(hp.x+nx,hp.z+nz);
+          if(sf&&sf.island===av.homeIsland) {
+            av.homeOffset.x=nx;av.homeOffset.z=nz;
+            av.targetHeading=Math.atan2(tx,tz);speed=0.55;
+          } else {id.mode="wait";id.until=time+1;}
+        }
+      } else if(time>id.until) {
+        // 挑選同一座島上的新目標
+        for(let k=0;k<12;k++) {
+          const a=Math.random()*TAU,r=0.5+Math.random()*1.3;
+          const ox=Math.cos(a)*r,oz=Math.sin(a)*r;
+          if(Math.hypot(ox-av.homeOffset.x,oz-av.homeOffset.z)<0.4) continue;
+          const sf=surfaceAt(hp.x+ox,hp.z+oz);
+          // 起訖點與中點都要在本島上，避免走進水裡
+          const mx=(ox+av.homeOffset.x)/2,mz=(oz+av.homeOffset.z)/2;
+          const sm=surfaceAt(hp.x+mx,hp.z+mz);
+          if(sf&&sf.island===av.homeIsland&&sm&&sm.island===av.homeIsland) {
+            id.mode="walk";id.target={x:ox,z:oz};id.until=time+8;id.action=null;break;
+          }
+        }
+        if(id.mode!=="walk") id.until=time+1;
+      }
+      av.pos.x=hp.x+av.homeOffset.x;
+      av.pos.z=hp.z+av.homeOffset.z;
     }
 
     const surf=surfaceAt(av.pos.x,av.pos.z);
@@ -4291,6 +4450,23 @@ function startWorld() {
     a.body.scale.set(1,breathe,1);
     a.head.rotation.z=reducedMotion?0:(speed>0?sw*0.06:Math.sin(time*1.1)*0.04);
 
+    let actHop=0;
+    a.head.rotation.y=0;
+    const act=av.idle&&av.idle.mode==="wait"&&speed===0&&!reducedMotion?av.idle.action:null;
+    if(act) {
+      const t=time-av.idle.t0;
+      if(t>1.6) av.idle.action=null;
+      else if(act==="wave") {
+        a.armR.rotation.z=-(0.32+2.3*Math.sin(Math.min(1,t*4)*Math.PI/2));
+        a.armR.rotation.x=Math.sin(t*14)*0.35;
+      } else if(act==="look") {
+        a.head.rotation.y=Math.sin(t/1.6*TAU)*0.6;
+      } else if(act==="jump"&&t<0.5) {
+        actHop=Math.sin(t/0.5*Math.PI)*0.22;
+      }
+    }
+    if(!act) a.armR.rotation.z=0.32;
+    hopY+=actHop;
     a.root.position.set(av.pos.x,THREE.MathUtils.lerp(a.root.position.y||groundY,groundY,Math.min(1,delta*14))+hopY,av.pos.z);
     a.root.rotation.y=av.heading;
     a.blob.position.set(av.pos.x,(surf?surf.y:0.32)+0.012,av.pos.z);
@@ -4375,7 +4551,11 @@ function startWorld() {
   // 啟動及 hash
   // ====================================================
 
+  // ---------- 本機儲存（只存在瀏覽器 localStorage，不傳送任何資料） ----------
+  restoreDrafts();
+
   refreshLayout(true);
+  setupMusic();
 
   function selectFromHash() {
     let id="";
